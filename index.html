@@ -1364,9 +1364,18 @@ function wire(){
     const b=e.target.closest('[data-open]'); if(!b) return;
     if(!document.body.classList.contains('narrow')) return; /* já estão visíveis */
     closePanels();
-    $('#panel'+b.dataset.open).classList.add('open'); $('#scrim').classList.add('on');
+    $('#panel'+b.dataset.open).classList.add('open');
   };
   $$('.closeP').forEach(b=>b.onclick=closePanels);
+  /* #scrim é 'position:fixed' fora do #app, então fica sempre acima de tudo
+     que tem dentro do #app -- inclusive do próprio painel do time, que por
+     isso nunca poderia usar o scrim pra se fechar (todo toque dentro do
+     painel acertaria o scrim antes de qualquer botão). Fechar tocando no
+     campo (fora do painel) é feito aqui, sem depender do scrim. */
+  $('#stage').addEventListener('click',()=>{
+    if(!document.body.classList.contains('narrow')) return;
+    if($('#panelA').classList.contains('open')||$('#panelB').classList.contains('open')) closePanels();
+  });
   $$('.pTeam').forEach(b=>b.onclick=()=>openTeamSheet(b.dataset.teamSide));
   $('#pickCancel').onclick=stopPicking;
 

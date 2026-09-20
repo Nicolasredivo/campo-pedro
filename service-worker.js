@@ -1,5 +1,5 @@
 // Sobe a cada publicação, junto com qualquer mudança em index.html/manifest/ícones.
-const CACHE_NAME = "campo-do-pedro-2026.09.20b";
+const CACHE_NAME = "campo-do-pedro-2026.09.20c";
 const APP_SHELL = [
   "./",
   "./index.html",
