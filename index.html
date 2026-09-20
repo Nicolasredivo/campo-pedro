@@ -1372,8 +1372,9 @@ function wire(){
      isso nunca poderia usar o scrim pra se fechar (todo toque dentro do
      painel acertaria o scrim antes de qualquer botão). Fechar tocando no
      campo (fora do painel) é feito aqui, sem depender do scrim. */
-  $('#stage').addEventListener('click',()=>{
+  $('#stage').addEventListener('click',e=>{
     if(!document.body.classList.contains('narrow')) return;
+    if(e.target.closest('#count')) return; /* esse toque já abre o painel, ver acima */
     if($('#panelA').classList.contains('open')||$('#panelB').classList.contains('open')) closePanels();
   });
   $$('.pTeam').forEach(b=>b.onclick=()=>openTeamSheet(b.dataset.teamSide));
