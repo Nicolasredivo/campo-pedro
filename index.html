@@ -1,0 +1,1538 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Campo do Pedro</title>
+<meta name="theme-color" content="#0e1512">
+<meta name="description" content="Placar, cronômetro e escalação de futebol pelo celular — funciona sem internet depois de instalado.">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="64x64" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+:root{
+  --bg:#0e1512; --bar:#17221d; --bar2:#1d2b24; --line:#2a3a32;
+  --fg:#eaf2ec; --muted:#93a99e; --acc:#ffd24a; --danger:#e0574a; --ok:#3fb56b;
+  --grass1:#2f7f47; --grass2:#2a7541; --chalk:rgba(255,255,255,.8);
+  --fs:1;
+  --safeT:env(safe-area-inset-top,0px); --safeB:env(safe-area-inset-bottom,0px);
+  --safeL:env(safe-area-inset-left,0px); --safeR:env(safe-area-inset-right,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg);color:var(--fg);
+  font-size:15px;line-height:1.35;
+  -webkit-user-select:none;user-select:none;
+}
+button,input,textarea,select{font:inherit;color:inherit}
+button{background:none;border:0;padding:0;cursor:pointer}
+input,textarea{-webkit-user-select:text;user-select:text}
+
+/* ---------- estrutura ---------- */
+#app{position:fixed;inset:0;display:flex;flex-direction:column}
+#top{
+  flex:0 0 auto;background:var(--bar);border-bottom:1px solid var(--line);
+  padding:calc(var(--safeT) + 6px) calc(var(--safeR) + 8px) 6px calc(var(--safeL) + 8px);
+}
+/* nas telas mais estreitas as barras quebram linha em vez de cortar um botão */
+.row1{display:flex;align-items:center;gap:6px;flex-wrap:wrap;row-gap:6px}
+.row2{display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap;row-gap:6px}
+@media (max-width:389px){ #btnMenu .lbl{display:none} }
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  min-height:40px;padding:0 12px;border-radius:10px;
+  background:var(--bar2);border:1px solid var(--line);
+  font-size:14px;font-weight:600;white-space:nowrap;
+}
+.btn:active{background:#27382f}
+.btn.sm{min-height:34px;padding:0 10px;font-size:13px}
+.btn.ghost{background:transparent}
+.btn.acc{background:var(--acc);color:#25200a;border-color:transparent}
+.btn.dang{background:#3a1f1c;border-color:#5c2a25;color:#ffb3aa}
+.btn.wide{width:100%}
+.btn[disabled]{opacity:.35}
+.ico{font-size:17px;line-height:1}
+
+.teamBtn{
+  flex:1 1 0;min-width:0;display:flex;align-items:center;gap:6px;
+  min-height:40px;padding:0 10px;border-radius:10px;background:var(--bar2);
+  border:1px solid var(--line);
+}
+.teamBtn .dot{flex:0 0 auto;width:12px;height:12px;border-radius:50%;background:#888}
+.teamBtn .tn{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-weight:700;font-size:14px;text-align:left}
+#scoreWrap{flex:0 0 auto;display:flex;align-items:center;gap:4px}
+.scBtn{min-width:38px;min-height:40px;padding:0 6px;border-radius:10px;background:var(--bar2);
+  border:1px solid var(--line);font-size:20px;font-weight:800;text-align:center}
+.scX{color:var(--muted);font-weight:700}
+
+#clockBox{display:flex;align-items:center;gap:6px}
+#clock{font-variant-numeric:tabular-nums;font-weight:800;font-size:16px;min-width:56px;text-align:center}
+#period{color:var(--muted);font-size:12px;font-weight:600}
+.spacer{flex:1 1 auto}
+
+#main{flex:1 1 auto;display:flex;min-height:0;position:relative}
+
+/* ---------- painéis ---------- */
+.panel{
+  flex:0 0 auto;width:clamp(150px,20vw,215px);
+  background:var(--bar);display:flex;flex-direction:column;min-height:0;
+  border-right:1px solid var(--line);
+}
+#panelB{border-right:0;border-left:1px solid var(--line)}
+.pHead{flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid var(--line)}
+.pHead .pTeam{flex:1;min-width:0;display:flex;align-items:center;gap:7px;padding:4px 0;text-align:left}
+.pHead .dot{flex:0 0 auto;width:11px;height:11px;border-radius:50%}
+.pHead b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+.pHead .cnt{flex:0 0 auto;font-size:10.5px;font-weight:700;color:var(--muted);white-space:nowrap}
+.pHead .cnt.bad{color:var(--acc)}
+.pHead .go{flex:0 0 auto;color:var(--muted);font-size:15px}
+.pHead .closeP{display:none;width:32px;height:32px;border-radius:8px;background:var(--bar2);font-size:16px}
+.pBody{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px;padding-bottom:20px}
+.sect{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+  margin:10px 2px 6px}
+.sect:first-child{margin-top:2px}
+.empty{color:var(--muted);font-size:12.5px;padding:8px;border:1px dashed var(--line);border-radius:10px;text-align:center}
+
+.pl{
+  display:flex;align-items:center;gap:7px;width:100%;
+  padding:7px 6px;margin-bottom:5px;border-radius:10px;
+  background:var(--bar2);border:1px solid var(--line);
+  touch-action:pan-y;
+}
+.pl:active{background:#27382f}
+.pl.inField{opacity:.55}
+.pl .num{flex:0 0 auto;width:26px;height:26px;border-radius:50%;background:var(--c,#555);color:#fff;
+  display:grid;place-items:center;font-weight:800;font-size:12px}
+.pl .tx{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:1px}
+.pl .nm{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:13.5px;font-weight:600;line-height:1.2}
+.pl .tag{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:10.5px;font-weight:700;color:var(--acc);line-height:1.2}
+.pl .go{flex:0 0 auto;color:var(--muted);font-size:15px;padding:0 2px}
+
+/* ---------- campo ---------- */
+#stage{flex:1 1 auto;position:relative;overflow:hidden;background:#0a120e;touch-action:none;min-width:0}
+#board{position:absolute;left:50%;top:50%;transform-origin:50% 50%;will-change:transform}
+#pitch{position:absolute;inset:0;width:100%;height:100%;display:block;border-radius:3px}
+#layer{position:absolute;inset:0}
+.mk{position:absolute;width:0;height:0}
+
+/* Vaga vazia e jogador são ancorados pelo CÍRCULO, que fica exatamente sobre a
+   coordenada da posição. O texto é posicionado fora do círculo: para cima no
+   time A e para baixo no time B, de modo que as duas faixas de texto nunca se
+   cruzem quando os dois times estão em campo ao mesmo tempo. */
+.slot,.chip{position:absolute;transform:translate(-50%,-50%);
+  width:calc(22px*var(--fs));height:calc(22px*var(--fs))}
+/* com o campo girado, o jogador gira ao contrário para o nome continuar em pé */
+#layer.rot90 .slot,#layer.rot90 .chip{transform:translate(-50%,-50%) rotate(-90deg)}
+.slot{pointer-events:none;z-index:2}
+.chip{z-index:6;touch-action:none}
+
+.slot .ring{width:100%;height:100%;border-radius:50%;
+  border:1.5px dashed rgba(255,255,255,.5);transition:transform .12s,background .12s}
+.chip .disc{width:100%;height:100%;border-radius:50%;background:var(--c);
+  color:#fff;display:grid;place-items:center;font-weight:800;font-size:calc(11px*var(--fs));
+  border:1.6px solid rgba(255,255,255,.92);box-shadow:0 2px 5px rgba(0,0,0,.55)}
+
+.slot .lb,.chip .nm,.chip .lb{position:absolute;left:50%;transform:translateX(-50%);
+  white-space:nowrap;text-align:center;pointer-events:none}
+.slot .lb,.chip .lb{font-size:calc(8px*var(--fs));font-weight:700;color:rgba(255,255,255,.85);
+  text-shadow:0 1px 2px rgba(0,0,0,.85);max-width:calc(68px*var(--fs));overflow:hidden;text-overflow:ellipsis}
+.chip .nm{max-width:calc(52px*var(--fs));font-size:calc(9px*var(--fs));font-weight:800;color:#fff;
+  background:rgba(0,0,0,.66);padding:0 3px;border-radius:4px;line-height:1.45;
+  overflow:hidden;text-overflow:ellipsis}
+/* time A: texto acima do círculo */
+.slot .lb,.chip .nm{bottom:calc(100% + 1px)}
+.chip .lb{top:calc(100% + 1px)}
+.lv1.slot .lb,.lv1.chip .nm{bottom:calc(100% + 13px*var(--fs))}
+/* time B: texto abaixo do círculo */
+.lblDown .lb,.lblDown .nm{bottom:auto;top:calc(100% + 1px)}
+.chip.lblDown .lb{top:auto;bottom:calc(100% + 1px)}
+.lblDown.lv1.slot .lb,.lblDown.lv1.chip .nm{top:calc(100% + 13px*var(--fs))}
+
+/* Com o campo girado, o comprimento do campo passa a ser a vertical da tela:
+   o texto do time A sai para um lado e o do time B para o outro, senão os dois
+   times ficariam escrevendo na mesma faixa. */
+#layer.rot90 .slot .lb,#layer.rot90 .chip .nm,#layer.rot90 .chip .lb{
+  left:auto;right:auto;top:50%;bottom:auto;transform:translateY(-50%)}
+#layer.rot90 .slot .lb,#layer.rot90 .chip .nm{left:calc(100% + 3px)}
+#layer.rot90 .chip .lb{right:calc(100% + 3px)}
+#layer.rot90 .lblDown .lb,#layer.rot90 .lblDown .nm{left:auto;right:calc(100% + 3px)}
+#layer.rot90 .chip.lblDown .lb{right:auto;left:calc(100% + 3px)}
+
+.slot.hot .ring{border-style:solid;border-color:var(--acc);background:rgba(255,210,74,.3);transform:scale(1.35)}
+.slot.hot .lb{color:var(--acc)}
+.slot.pickable{pointer-events:auto}
+.slot.pickable .ring{border-color:var(--acc);border-style:solid;animation:pulse 1.1s infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.22)}}
+
+.sideDim{opacity:.34}
+.sideDim .nm,.sideDim .lb{display:none}
+.hidden{display:none !important}
+
+#ghost{position:fixed;z-index:400;pointer-events:none;transform:translate(-50%,-50%) scale(1.12);
+  filter:drop-shadow(0 6px 10px rgba(0,0,0,.6))}
+
+/* controles flutuantes sobre o campo */
+.fab{position:absolute;z-index:20;display:flex;gap:6px}
+#fabZoom{right:8px;bottom:calc(8px + var(--safeB));flex-direction:column}
+body.narrow #fabZoom{bottom:calc(66px + var(--safeB))}
+.fbtn{width:42px;height:42px;border-radius:12px;background:rgba(14,21,18,.85);border:1px solid var(--line);
+  display:grid;place-items:center;font-size:18px;font-weight:700;backdrop-filter:blur(4px)}
+.fbtn small{display:block;font-size:8px;font-weight:700;color:var(--muted);margin-top:-2px}
+#count{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(6px + var(--safeB));z-index:22;
+  display:flex;gap:7px;max-width:calc(100% - 16px)}
+#count .cbtn{display:flex;align-items:center;gap:7px;min-width:0;
+  background:rgba(14,21,18,.88);border:1px solid var(--line);border-radius:10px;
+  padding:6px 10px;backdrop-filter:blur(4px)}
+#count .cbtn .dot{flex:0 0 auto;width:9px;height:9px;border-radius:50%}
+#count .cbtn .tx{min-width:0;text-align:left}
+#count .cbtn b{display:block;font-size:11.5px;font-weight:800;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;max-width:34vw}
+#count .cbtn small{display:block;font-size:10.5px;font-weight:700;color:var(--muted);white-space:nowrap}
+#count .cbtn small.bad{color:var(--acc)}
+#count .cbtn .ico{display:none;font-size:14px}
+/* com as listas já visíveis ao lado, a contagem vai no cabeçalho de cada lista
+   e nada fica flutuando por cima do campo; na tela em pé estes dois botões são
+   a porta de entrada das listas */
+body:not(.narrow) #count{display:none}
+body.narrow #count .cbtn{padding:8px 12px}
+body.narrow #count .cbtn .ico{display:block}
+body.narrow .pHead .cnt{display:none}
+
+/* modo escolher posição */
+#pickBar{display:none;position:absolute;left:8px;right:8px;top:8px;z-index:60;
+  background:var(--acc);color:#25200a;border-radius:12px;padding:9px 12px;
+  align-items:center;gap:10px;box-shadow:0 6px 16px rgba(0,0,0,.45)}
+#pickBar.on{display:flex}
+#pickBar .t{flex:1;min-width:0;font-weight:800;font-size:13.5px;line-height:1.25}
+#pickBar .t small{display:block;font-weight:600;opacity:.75;font-size:11.5px}
+#pickBar button{background:#25200a;color:#ffe9a8;padding:8px 12px;border-radius:9px;font-weight:700;font-size:13px}
+
+/* ---------- gaveta / menu ---------- */
+#scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:90;opacity:0;pointer-events:none;transition:opacity .2s}
+#scrim.on{opacity:1;pointer-events:auto}
+#menu{
+  position:fixed;top:0;bottom:0;left:0;z-index:100;width:min(86vw,340px);
+  background:var(--bar);border-right:1px solid var(--line);
+  transform:translateX(-102%);transition:transform .24s cubic-bezier(.3,.8,.3,1);
+  display:flex;flex-direction:column;
+  padding-top:var(--safeT);padding-bottom:var(--safeB);padding-left:var(--safeL);
+}
+#menu.on{transform:none}
+.mHead{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line)}
+.mHead .ttl{flex:1;font-weight:800;font-size:16px}
+.mBody{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 12px 24px}
+.mItem{display:flex;align-items:center;gap:11px;width:100%;padding:13px 12px;margin-bottom:7px;
+  border-radius:12px;background:var(--bar2);border:1px solid var(--line);text-align:left}
+.mItem:active{background:#27382f}
+.mItem .ico{font-size:20px;width:24px;text-align:center}
+.mItem .tx{flex:1;min-width:0}
+.mItem .tx b{display:block;font-size:14.5px;font-weight:700}
+.mItem .tx small{display:block;color:var(--muted);font-size:12px;margin-top:1px;line-height:1.3}
+.mNote{color:var(--muted);font-size:12px;padding:10px 4px;line-height:1.5}
+
+textarea.notes{width:100%;min-height:45vh;background:var(--bar2);border:1px solid var(--line);
+  border-radius:12px;padding:12px;font-size:15px;line-height:1.5;resize:none}
+
+.hist{border:1px solid var(--line);border-radius:12px;margin-bottom:9px;overflow:hidden;background:var(--bar2)}
+.hist .hh{display:flex;align-items:center;gap:8px;padding:11px 12px;width:100%;text-align:left}
+.hist .hh .tx{flex:1;min-width:0}
+.hist .hh b{display:block;font-size:14px}
+.hist .hh small{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}
+.hist .hb{display:none;padding:0 12px 12px;border-top:1px solid var(--line)}
+.hist.open .hb{display:block}
+.logLine{display:flex;gap:8px;font-size:12.5px;padding:5px 0;border-bottom:1px dashed rgba(255,255,255,.07);line-height:1.4}
+.logLine .mn{flex:0 0 auto;width:34px;color:var(--acc);font-weight:800;font-variant-numeric:tabular-nums;font-size:11.5px}
+.lineup{font-size:12.5px;line-height:1.6;color:var(--fg)}
+.lineup i{color:var(--muted);font-style:normal}
+
+.fieldRow{display:flex;align-items:center;gap:10px;padding:11px 2px;border-bottom:1px solid var(--line)}
+.fieldRow .tx{flex:1;min-width:0}
+.fieldRow .tx b{display:block;font-size:14px;font-weight:700}
+.fieldRow .tx small{display:block;color:var(--muted);font-size:11.5px;margin-top:1px;line-height:1.35}
+.sw{flex:0 0 auto;width:50px;height:30px;border-radius:15px;background:#3a4a42;position:relative;transition:background .18s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;
+  background:#fff;transition:transform .18s}
+.sw.on{background:var(--ok)}
+.sw.on::after{transform:translateX(20px)}
+.segs{display:flex;gap:5px}
+.segs button{flex:1;min-height:36px;border-radius:9px;background:var(--bar2);border:1px solid var(--line);
+  font-size:13px;font-weight:700}
+.segs button.on{background:var(--acc);color:#25200a;border-color:transparent}
+
+/* ---------- diálogos ---------- */
+#modalWrap{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;padding:16px}
+#modalWrap.on{display:flex}
+#modalWrap::before{content:"";position:absolute;inset:0;background:rgba(0,0,0,.6)}
+.modal{position:relative;width:min(100%,420px);max-height:86vh;display:flex;flex-direction:column;
+  background:var(--bar);border:1px solid var(--line);border-radius:16px;overflow:hidden;
+  box-shadow:0 20px 50px rgba(0,0,0,.6)}
+.modal h3{margin:0;padding:15px 16px 0;font-size:17px}
+.modal .mc{padding:12px 16px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.modal .mf{display:flex;gap:8px;padding:12px 16px calc(14px + var(--safeB));border-top:1px solid var(--line)}
+.modal .mf .btn{flex:1;min-height:46px}
+.fld{margin-bottom:12px}
+.fld label{display:block;font-size:12.5px;font-weight:700;color:var(--muted);margin-bottom:5px}
+.fld input[type=text],.fld input[type=number],.fld textarea{
+  width:100%;min-height:46px;background:var(--bar2);border:1px solid var(--line);border-radius:10px;
+  padding:10px 12px;font-size:16px}
+.fld .hint{font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.4}
+.colors{display:flex;flex-wrap:wrap;gap:9px}
+.colors button{width:38px;height:38px;border-radius:50%;border:2px solid transparent}
+.colors button.on{border-color:#fff;box-shadow:0 0 0 2px rgba(0,0,0,.4) inset}
+
+/* action sheet */
+#sheetWrap{position:fixed;inset:0;z-index:210;display:none}
+#sheetWrap.on{display:block}
+#sheetWrap::before{content:"";position:absolute;inset:0;background:rgba(0,0,0,.55)}
+.sheet{position:absolute;left:8px;right:8px;bottom:calc(8px + var(--safeB));
+  background:var(--bar);border:1px solid var(--line);border-radius:18px;overflow:hidden;
+  max-height:80vh;display:flex;flex-direction:column;box-shadow:0 -10px 40px rgba(0,0,0,.6)}
+.sheet .sh{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+.sheet .sh b{font-size:16px}
+.sheet .sh small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.sheet .si{display:flex;align-items:center;gap:12px;width:100%;padding:15px 16px;
+  border-bottom:1px solid rgba(255,255,255,.05);text-align:left;font-size:15px;font-weight:600}
+.sheet .si:active{background:var(--bar2)}
+.sheet .si .ico{font-size:19px;width:24px;text-align:center}
+.sheet .si.dang{color:#ffaba1}
+.sheet .si small{display:block;font-weight:500;font-size:12px;color:var(--muted);margin-top:1px}
+.sheet .sbody{overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+#toast{position:fixed;left:50%;bottom:calc(70px + var(--safeB));transform:translateX(-50%) translateY(14px);
+  z-index:300;background:#101a15;border:1px solid var(--line);color:var(--fg);
+  padding:11px 16px;border-radius:12px;font-size:13.5px;font-weight:600;max-width:84vw;text-align:center;
+  opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;box-shadow:0 8px 22px rgba(0,0,0,.5)}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ---------- modo retrato: painéis viram gavetas ---------- */
+body.narrow .panel{
+  position:absolute;top:0;bottom:0;z-index:80;width:min(80vw,310px);
+  box-shadow:0 0 40px rgba(0,0,0,.6);transition:transform .24s cubic-bezier(.3,.8,.3,1);
+}
+body.narrow #panelA{left:0;transform:translateX(-102%)}
+body.narrow #panelB{right:0;transform:translateX(102%)}
+body.narrow #panelA.open,body.narrow #panelB.open{transform:none}
+body.narrow .pHead .closeP{display:grid;place-items:center}
+/* na tela em pé não cabe o nome dos times no topo: eles ficam grandes nos dois
+   botões de baixo, e no topo sobra só a bolinha da cor, que continua abrindo
+   as opções do time */
+body.narrow .teamBtn{flex:0 0 auto;padding:0 12px}
+body.narrow .teamBtn .tn{display:none}
+body.narrow #scoreWrap{flex:1 1 auto;justify-content:center}
+/* na tela estreita a segunda barra fica só com os ícones do Voltar/Refazer e
+   sem o "1º tempo", que continua visível ao tocar no relógio */
+body.narrow #period{display:none}
+body.narrow #btnUndo .tx,body.narrow #btnRedo .tx{display:none}
+body.dragging.narrow .panel.open{transform:translateX(-88%);opacity:.2;pointer-events:none}
+body.dragging.narrow #panelB.open{transform:translateX(88%)}
+
+/* ---------- ajuda ---------- */
+.helpStep{display:flex;gap:12px;margin-bottom:16px}
+.helpStep .n{flex:0 0 auto;width:28px;height:28px;border-radius:50%;background:var(--acc);color:#25200a;
+  display:grid;place-items:center;font-weight:800;font-size:14px}
+.helpStep .tx b{display:block;font-size:14.5px;margin-bottom:2px}
+.helpStep .tx span{font-size:13px;color:var(--muted);line-height:1.45}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header id="top">
+    <div class="row1">
+      <button class="btn" id="btnMenu"><span class="ico">☰</span><span class="lbl">Menu</span></button>
+      <button class="teamBtn" id="teamA"><span class="dot"></span><span class="tn">Time A</span></button>
+      <div id="scoreWrap">
+        <button class="scBtn" id="scA">0</button>
+        <span class="scX">×</span>
+        <button class="scBtn" id="scB">0</button>
+      </div>
+      <button class="teamBtn" id="teamB"><span class="dot"></span><span class="tn">Time B</span></button>
+      <button class="btn" id="btnWarn" style="display:none;background:#5c3a10;border-color:#8a5c1c"><span class="ico">⚠️</span></button>
+      <button class="btn" id="btnHelp"><span class="ico">?</span></button>
+    </div>
+    <div class="row2">
+      <button class="btn sm" id="btnPlay"><span class="ico">▶</span><span id="playTx">Iniciar</span></button>
+      <div id="clockBox"><span id="clock">00:00</span><span id="period">1º tempo</span></div>
+      <button class="btn sm" id="btnView"><span class="ico">👁</span><span class="tx">Vendo: os dois</span></button>
+      <span class="spacer"></span>
+      <button class="btn sm" id="btnUndo"><span class="ico">↺</span><span class="tx">Voltar</span></button>
+      <button class="btn sm" id="btnRedo"><span class="ico">↻</span><span class="tx">Refazer</span></button>
+    </div>
+  </header>
+
+  <div id="main">
+    <aside class="panel" id="panelA">
+      <div class="pHead">
+        <button class="pTeam" data-team-side="A"><span class="dot"></span><b>Time A</b><small class="cnt"></small><span class="go">›</span></button>
+        <button class="closeP">✕</button>
+      </div>
+      <div class="pBody"></div>
+    </aside>
+
+    <div id="stage">
+      <div id="board">
+        <svg id="pitch" viewBox="-5 -5 115 78" preserveAspectRatio="none" aria-hidden="true"></svg>
+        <div id="layer">
+          <i class="mk" id="mk0"></i><i class="mk" id="mk1"></i><i class="mk" id="mk2"></i>
+        </div>
+      </div>
+
+      <div id="pickBar"><div class="t"></div><button id="pickCancel">Cancelar</button></div>
+
+      <div class="fab" id="fabZoom">
+        <button class="fbtn" id="zIn">＋</button>
+        <button class="fbtn" id="zOut">−</button>
+        <button class="fbtn" id="zFit">⤢<small>ajustar</small></button>
+        <button class="fbtn" id="zRot">⟳<small>girar</small></button>
+      </div>
+      <div id="count"></div>
+    </div>
+
+    <aside class="panel" id="panelB">
+      <div class="pHead">
+        <button class="pTeam" data-team-side="B"><span class="dot"></span><b>Time B</b><small class="cnt"></small><span class="go">›</span></button>
+        <button class="closeP">✕</button>
+      </div>
+      <div class="pBody"></div>
+    </aside>
+  </div>
+</div>
+
+<div id="scrim"></div>
+
+<nav id="menu">
+  <div class="mHead">
+    <button class="btn sm ghost" id="menuBack" style="display:none"><span class="ico">‹</span>Voltar</button>
+    <span class="ttl">Menu</span>
+    <button class="btn sm ghost" id="menuClose"><span class="ico">✕</span></button>
+  </div>
+  <div class="mBody"></div>
+</nav>
+
+<div id="modalWrap"></div>
+<div id="sheetWrap"></div>
+<div id="toast"></div>
+<div id="ghost" class="hidden"></div>
+<input type="file" id="fileIn" accept=".json,application/json,text/plain" style="display:none">
+<script>
+"use strict";
+
+/* ==================================================================
+   utilitários
+   ================================================================== */
+const $  = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));
+const uid = ()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-3);
+const esc = s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+function toast(msg){
+  const t=$('#toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('on'),2200);
+}
+
+/* ==================================================================
+   posições (17 por time) — lado A ataca para a direita
+   ================================================================== */
+/* id, nome curto (é o que aparece no campo), nome completo, x, y, nível do texto.
+   O "nível" afasta o texto do círculo em duas alturas diferentes: posições
+   vizinhas na mesma faixa do campo usam níveis alternados, e assim dois nomes
+   lado a lado nunca se sobrepõem. As posições coladas na linha lateral ficam
+   sempre no nível 0 para o texto não sair do campo. */
+const POS = [
+  ['GOL' ,'Goleiro'      ,'Goleiro'        ,  4.0, 34, 0],
+  ['LIB' ,'Líbero'       ,'Líbero'         , 13.5, 34, 1],
+  ['ZAG' ,'Zagueiro'     ,'Zagueiro'       , 24.0, 34, 0],
+  ['LD'  ,'Lateral Dir.' ,'Lateral-Direito', 18.0, 56, 0],
+  ['LE'  ,'Lateral Esq.' ,'Lateral-Esquerdo',18.0, 12, 0],
+  ['VOL1','Volante 1'    ,'Primeiro Volante',31.5, 34, 1],
+  ['VOL2','Volante 2'    ,'Segundo Volante', 40.5, 34, 0],
+  ['ALD' ,'Ala Dir.'     ,'Ala-Direito'    , 47.0, 62, 1],
+  ['ALE' ,'Ala Esq.'     ,'Ala-Esquerdo'   , 47.0,  7, 0],
+  ['MC'  ,'Meia Central' ,'Meia-Central'   , 49.5, 34, 1],
+  ['MLD' ,'Meia Dir.'    ,'Meia-Lateral-Direito' ,61.0,56, 0],
+  ['MLE' ,'Meia Esq.'    ,'Meia-Lateral-Esquerdo',61.0,12, 0],
+  ['MEI' ,'Armador'      ,'Meia-Armador'   , 69.0, 34, 0],
+  ['PD'  ,'Ponta Dir.'   ,'Ponta-Direita'  , 83.0, 60, 1],
+  ['PE'  ,'Ponta Esq.'   ,'Ponta-Esquerda' , 83.0,  8, 0],
+  ['SA'  ,'2º Atacante'  ,'Segundo Atacante',80.0, 34, 1],
+  ['CA'  ,'Centroavante' ,'Centroavante'   , 91.0, 34, 0],
+].map(([id,curto,longo,x,y,lvl])=>({id,curto,longo,x,y,lvl}));
+
+const POSBY = Object.fromEntries(POS.map(p=>[p.id,p]));
+const posName = id => POSBY[id] ? POSBY[id].curto : '—';
+/* O time B é o espelho do A. Cada time ainda ganha um pequeno deslocamento
+   vertical (A para cima, B para baixo) para que dois adversários que disputam
+   a mesma região do campo não fiquem desenhados um em cima do outro. */
+const SEP = 3;
+const coordOf = (side,p)=> side==='A' ? {x:p.x, y:p.y-SEP} : {x:105-p.x, y:68-p.y+SEP};
+
+const COLORS = ['#2f6fd0','#c8372d','#2e9e5b','#e0a020','#8e56c8','#20a5a5','#e0669a','#e9edf2','#4a4f57','#8a5a2b'];
+
+/* ==================================================================
+   estado
+   ================================================================== */
+const KEY='campoPedro.v1';
+let DB=null, undoStack=[], redoStack=[], storageOK=true;
+
+function blankMatch(idA,idB){
+  return { id:uid(), createdAt:Date.now(),
+    A:{teamId:idA, placed:{}}, B:{teamId:idB, placed:{}},
+    score:{A:0,B:0},
+    clock:{running:false, base:0, at:null, period:1},
+    notes:'', log:[], started:false, snapped:false };
+}
+function defaults(){
+  const a={id:uid(),name:'Time A',color:COLORS[0],players:[]};
+  const b={id:uid(),name:'Time B',color:COLORS[1],players:[]};
+  return { v:1, teams:[a,b], match:blankMatch(a.id,b.id), history:[],
+    settings:{magnet:true, focus:'both', fs:1, showEmpty:true, shortNames:true,
+              rot:0, rotAuto:true, seenHelp:false} };
+}
+function load(){
+  try{
+    const raw=localStorage.getItem(KEY);
+    if(raw){ DB=JSON.parse(raw); }
+  }catch(e){ storageOK=false; }
+  if(!DB || !DB.teams || !DB.match) DB=defaults();
+  DB.settings=Object.assign(defaults().settings, DB.settings||{});
+  if(!DB.history) DB.history=[];
+  ensureTeams();
+}
+/* ------------------------------------------------------------------
+   Por que o celular pode não estar guardando, e o que fazer
+   ------------------------------------------------------------------
+   Quando o arquivo é aberto direto do WhatsApp, do e-mail ou de alguns
+   gerenciadores de arquivos, o Android entrega a página para o navegador por
+   um endereço "content:" ou "data:". Nesses casos o navegador trata a página
+   como anônima e desliga o armazenamento — não tem ajuste que resolva por
+   dentro. A solução é abrir pelo caminho real do arquivo (file:), aí o
+   navegador passa a guardar normalmente. */
+function diagnostico(){
+  const p=location.protocol;
+  if(p==='content:'||p==='data:'||p==='blob:') return {
+    causa:'O aplicativo foi aberto direto de um outro aplicativo (WhatsApp, e-mail, Drive) e por isso o navegador não deixa guardar nada.',
+    passos:['Salve o arquivo no celular (ele costuma ir para a pasta <b>Downloads</b>).',
+            'Abra o <b>Chrome</b> e digite na barra de endereço:<br><b>file:///sdcard/Download/campo-pedro.html</b>',
+            'Com o aplicativo aberto assim, toque nos três pontinhos do Chrome e escolha <b>Adicionar à tela de início</b>.',
+            'A partir daí, use sempre o ícone criado na tela de início.']};
+  if(p==='file:') return {
+    causa:'O aplicativo está aberto pelo caminho do arquivo, mas mesmo assim este navegador não está guardando.',
+    passos:['Tente abrir o mesmo arquivo pelo <b>Firefox</b>, que costuma guardar sem problema.',
+            'Confira se o navegador não está no modo anônimo/privado.',
+            'Enquanto isso, use <b>Salvar cópia de segurança</b> no menu ao terminar cada jogo.']};
+  return {causa:'Este navegador está com o armazenamento desligado.',
+          passos:['Confira se não está no modo anônimo/privado.',
+                  'Use <b>Salvar cópia de segurança</b> no menu ao terminar cada jogo.']};
+}
+function avisoArmazenamento(){
+  const d=diagnostico();
+  modal('Este celular não está guardando',
+    `<p style="margin:2px 0 10px;line-height:1.5">${d.causa}</p>
+     <p style="margin:0 0 8px;line-height:1.5">O aplicativo funciona normalmente, mas <b>ao fechar, os jogadores e o histórico vão sumir</b>. Para resolver de vez:</p>
+     <ol style="margin:0 0 10px;padding-left:20px;line-height:1.6;font-size:14px">${d.passos.map(s=>'<li style="margin-bottom:6px">'+s+'</li>').join('')}</ol>
+     <p style="margin:0;line-height:1.5;color:var(--muted);font-size:13px">Enquanto isso, nada se perde: guarde tudo num arquivo com o botão abaixo e traga de volta depois.</p>`,
+    [{label:'Entendi'},{label:'Salvar cópia agora',cls:'acc',run:exportarBackup}]);
+}
+
+/* cópia de segurança em arquivo — funciona mesmo quando o navegador se recusa
+   a guardar, porque baixar e ler arquivo continua permitido */
+function exportarBackup(){
+  try{
+    const data=JSON.stringify(DB,null,1);
+    const nome='campo-pedro-'+new Date().toISOString().slice(0,10)+'.json';
+    const url=URL.createObjectURL(new Blob([data],{type:'application/json'}));
+    const a=document.createElement('a'); a.href=url; a.download=nome;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),2000);
+    toast('Cópia salva em Downloads: '+nome);
+  }catch(e){ toast('Não foi possível salvar a cópia neste aparelho'); }
+}
+async function aplicarBackup(texto){
+  let novo=null;
+  try{ novo=JSON.parse(texto); }catch(e){}
+  if(!novo || !Array.isArray(novo.teams) || !novo.match){
+    modal('Não serve',`<p style="margin:2px 0;line-height:1.5">Isto não é uma cópia de segurança do Campo do Pedro. O arquivo tem nome parecido com <b>campo-pedro-2026-09-19.json</b>, e o texto começa com <b>{"v":1</b>.</p>`,[{label:'Fechar'}]);
+    return false;
+  }
+  const qtd=(novo.teams||[]).length, jogos=(novo.history||[]).length;
+  if(!await confirmBox('Trazer a cópia de volta',
+    `A cópia tem ${qtd} time(s) e ${jogos} jogo(s) guardado(s). Isso vai substituir tudo o que está no aplicativo agora. Continuar?`,'Trazer de volta')) return false;
+  pushUndo();
+  DB=novo; DB.settings=Object.assign(defaults().settings, DB.settings||{});
+  if(!DB.history) DB.history=[];
+  ensureTeams(); save(); renderAll(); fitView(); closeMenu();
+  toast('Cópia restaurada');
+  return true;
+}
+function importarBackup(file){
+  const fr=new FileReader();
+  fr.onload=()=>aplicarBackup(fr.result);
+  fr.readAsText(file);
+}
+/* Alguns lugares não deixam a página baixar arquivo sozinha. Por isso a cópia
+   também existe em texto: dá para copiar, guardar onde quiser e colar de volta. */
+function textoBackup(){
+  modal('Texto da cópia de segurança',
+    `<p style="margin:2px 0 8px;line-height:1.5">Toque no texto, escolha <b>Selecionar tudo</b> e depois <b>Copiar</b>. Guarde numa anotação ou mande para você mesmo.</p>
+     <textarea id="bkTxt" readonly style="width:100%;height:150px;font-family:ui-monospace,monospace;font-size:11px">${esc(JSON.stringify(DB))}</textarea>`,
+    [{label:'Fechar'}]);
+  setTimeout(()=>{ const t=$('#bkTxt'); if(t){ t.focus(); t.select(); } },150);
+}
+function colarBackup(){
+  modal('Colar o texto da cópia',
+    `<p style="margin:2px 0 8px;line-height:1.5">Cole aqui o texto que você guardou antes.</p>
+     <textarea id="bkIn" placeholder='{"v":1, ...' style="width:100%;height:150px;font-family:ui-monospace,monospace;font-size:11px"></textarea>`,
+    [{label:'Cancelar'},{label:'Trazer de volta',cls:'acc',run:w=>aplicarBackup(w.querySelector('#bkIn').value)}]);
+}
+
+let saveTimer=null;
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{
+    try{ localStorage.setItem(KEY, JSON.stringify(DB)); }
+    catch(e){ if(storageOK){ storageOK=false; toast('Atenção: este aparelho não está guardando os dados.'); } }
+  },250);
+}
+function ensureTeams(){
+  if(!DB.teams.length) DB.teams.push({id:uid(),name:'Time A',color:COLORS[0],players:[]});
+  if(DB.teams.length<2) DB.teams.push({id:uid(),name:'Time B',color:COLORS[1],players:[]});
+  ['A','B'].forEach((s,i)=>{ if(!teamOf(s)) DB.match[s].teamId=DB.teams[Math.min(i,DB.teams.length-1)].id; });
+}
+const teamOf = side => DB.teams.find(t=>t.id===DB.match[side].teamId);
+const placedOf = side => DB.match[side].placed;
+const playerById=(side,pid)=>{ const t=teamOf(side); return t&&t.players.find(p=>p.id===pid); };
+const onFieldCount = side => Object.keys(placedOf(side)).length;
+function slotOwner(side,slotId){
+  const pl=placedOf(side);
+  for(const pid in pl){ if(pl[pid].slot===slotId) return pid; }
+  return null;
+}
+
+/* undo -------------------------------------------------------------- */
+function snapshot(){ return JSON.stringify({teams:DB.teams, match:DB.match}); }
+function pushUndo(){
+  undoStack.push(snapshot());
+  if(undoStack.length>40) undoStack.shift();
+  redoStack.length=0; refreshUndoBtns();
+}
+function applySnap(s){ const o=JSON.parse(s); DB.teams=o.teams; DB.match=o.match; ensureTeams(); renderAll(); save(); }
+function undo(){ if(!undoStack.length) return; redoStack.push(snapshot()); applySnap(undoStack.pop()); refreshUndoBtns(); toast('Desfeito'); }
+function redo(){ if(!redoStack.length) return; undoStack.push(snapshot()); applySnap(redoStack.pop()); refreshUndoBtns(); toast('Refeito'); }
+function refreshUndoBtns(){ $('#btnUndo').disabled=!undoStack.length; $('#btnRedo').disabled=!redoStack.length; }
+
+/* relógio ----------------------------------------------------------- */
+function elapsed(){ const c=DB.match.clock; return c.base + (c.running? Date.now()-c.at : 0); }
+function minuteNow(){ return DB.match.started ? Math.floor(elapsed()/60000) : null; }
+function mmss(ms){ const s=Math.floor(ms/1000); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+function logIt(txt){ DB.match.log.push({t:Date.now(), min:minuteNow(), txt}); }
+
+/* ==================================================================
+   desenho do campo
+   ================================================================== */
+function drawPitch(){
+  const C='var(--chalk)', W=0.32;
+  let s=`<defs>
+    <linearGradient id="gg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#31864b"/><stop offset="1" stop-color="#276b3c"/>
+    </linearGradient></defs>
+    <rect x="-5" y="-5" width="115" height="78" fill="url(#gg)"/>`;
+  for(let i=0;i<10;i+=2) s+=`<rect x="${i*10.5}" y="0" width="10.5" height="68" fill="rgba(255,255,255,.045)"/>`;
+  const g=(d)=>`<path d="${d}" fill="none" stroke="${C}" stroke-width="${W}"/>`;
+  s+=`<rect x="0" y="0" width="105" height="68" fill="none" stroke="${C}" stroke-width="${W}"/>`;
+  s+=g('M52.5 0 L52.5 68');
+  s+=`<circle cx="52.5" cy="34" r="9.15" fill="none" stroke="${C}" stroke-width="${W}"/>`;
+  s+=`<circle cx="52.5" cy="34" r="0.4" fill="${C}"/>`;
+  s+=`<rect x="0"    y="13.84" width="16.5" height="40.32" fill="none" stroke="${C}" stroke-width="${W}"/>`;
+  s+=`<rect x="88.5" y="13.84" width="16.5" height="40.32" fill="none" stroke="${C}" stroke-width="${W}"/>`;
+  s+=`<rect x="0"    y="24.84" width="5.5"  height="18.32" fill="none" stroke="${C}" stroke-width="${W}"/>`;
+  s+=`<rect x="99.5" y="24.84" width="5.5"  height="18.32" fill="none" stroke="${C}" stroke-width="${W}"/>`;
+  s+=`<circle cx="11" cy="34" r="0.4" fill="${C}"/><circle cx="94" cy="34" r="0.4" fill="${C}"/>`;
+  s+=g('M16.5 26.69 A 9.15 9.15 0 0 1 16.5 41.31');
+  s+=g('M88.5 26.69 A 9.15 9.15 0 0 0 88.5 41.31');
+  s+=g('M0 1 A 1 1 0 0 0 1 0');
+  s+=g('M104 0 A 1 1 0 0 0 105 1');
+  s+=g('M105 67 A 1 1 0 0 0 104 68');
+  s+=g('M1 68 A 1 1 0 0 0 0 67');
+  s+=`<rect x="-1.9" y="30.34" width="1.9" height="7.32" fill="rgba(255,255,255,.22)" stroke="${C}" stroke-width="0.22"/>`;
+  s+=`<rect x="105"  y="30.34" width="1.9" height="7.32" fill="rgba(255,255,255,.22)" stroke="${C}" stroke-width="0.22"/>`;
+  $('#pitch').innerHTML=s;
+}
+const pctL = x => ((x+5)/115)*100;
+const pctT = y => ((y+5)/78)*100;
+
+/* ==================================================================
+   zoom / rotação / pan
+   ================================================================== */
+const view={z:1,tx:0,ty:0};
+function boardFit(){
+  const st=$('#stage').getBoundingClientRect();
+  const pad=10, AR=115/78;
+  const availW=Math.max(80,st.width-pad*2), availH=Math.max(80,st.height-pad*2);
+  /* girado 90º, o campo ocupa na tela a altura como largura e vice-versa */
+  const w = DB.settings.rot===90 ? Math.min(availH, availW*AR)
+                                 : Math.min(availW, availH*AR);
+  const h=w/AR;
+  const b=$('#board');
+  b.style.width=w+'px'; b.style.height=h+'px';
+  b.style.marginLeft=(-w/2)+'px'; b.style.marginTop=(-h/2)+'px';
+}
+function applyView(){
+  $('#board').style.transform=`translate(${view.tx}px,${view.ty}px) rotate(${DB.settings.rot}deg) scale(${view.z})`;
+  $('#layer').classList.toggle('rot90', DB.settings.rot===90);
+}
+/* Com a tela em pé, o campo deitado sobra espaço em cima e embaixo. Nesse caso
+   ele é girado sozinho para preencher a tela. Se a pessoa usar o botão "girar",
+   a escolha dela passa a valer e o automático desliga. */
+function autoRot(){
+  if(!DB.settings.rotAuto) return;
+  const st=$('#stage').getBoundingClientRect();
+  DB.settings.rot = (st.height/Math.max(1,st.width) > 1.15) ? 90 : 0;
+}
+function fitView(){ autoRot(); view.z=1; view.tx=0; view.ty=0; boardFit(); applyView(); }
+function zoomAt(newZ, sx, sy){
+  const st=$('#stage').getBoundingClientRect();
+  const cx=st.left+st.width/2, cy=st.top+st.height/2;
+  const z0=view.z, z1=clamp(newZ,.75,6);
+  if(z1===z0) return;
+  view.tx = sx-cx - (z1/z0)*(sx-cx-view.tx);
+  view.ty = sy-cy - (z1/z0)*(sy-cy-view.ty);
+  view.z=z1; applyView();
+}
+function zoomCenter(f){ const st=$('#stage').getBoundingClientRect(); zoomAt(view.z*f, st.left+st.width/2, st.top+st.height/2); }
+
+/* converte ponto da tela -> coordenadas do campo (funciona girado) */
+function clientToPitch(cx,cy){
+  const r0=$('#mk0').getBoundingClientRect(), r1=$('#mk1').getBoundingClientRect(), r2=$('#mk2').getBoundingClientRect();
+  const ex={x:(r1.left-r0.left)/105, y:(r1.top-r0.top)/105};
+  const ey={x:(r2.left-r0.left)/68 , y:(r2.top-r0.top)/68 };
+  const d={x:cx-r0.left, y:cy-r0.top};
+  const det=ex.x*ey.y-ex.y*ey.x;
+  if(!det) return {x:52.5,y:34};
+  return { x:(d.x*ey.y-d.y*ey.x)/det, y:(ex.x*d.y-ex.y*d.x)/det };
+}
+
+/* ==================================================================
+   render
+   ================================================================== */
+function renderAll(){ renderTop(); renderPanel('A'); renderPanel('B'); renderField(); renderCount(); }
+
+function renderTop(){
+  ['A','B'].forEach(s=>{
+    const t=teamOf(s), btn=$('#team'+s);
+    btn.querySelector('.dot').style.background=t.color;
+    btn.querySelector('.tn').textContent=t.name;
+    $('#sc'+s).textContent=DB.match.score[s];
+    const p=$('#panel'+s);
+    p.querySelector('.dot').style.background=t.color;
+    p.querySelector('b').textContent=t.name;
+  });
+  $('#btnWarn').style.display = storageOK ? 'none' : 'inline-flex';
+  $('#period').textContent=DB.match.clock.period+'º tempo';
+  $('#playTx').textContent=DB.match.clock.running?'Pausar':(DB.match.started?'Continuar':'Iniciar');
+  $('#btnPlay').querySelector('.ico').textContent=DB.match.clock.running?'❚❚':'▶';
+  const estreito=document.body.classList.contains('narrow');
+  const nome=s=>{ const n=teamOf(s).name; return n.length>(estreito?9:16)?n.slice(0,estreito?8:15)+'…':n; };
+  $('#btnView .tx').textContent =
+    {both: estreito?'Os dois':'Vendo: os dois', A:(estreito?'':'Vendo: ')+nome('A'), B:(estreito?'':'Vendo: ')+nome('B')}[DB.settings.focus];
+  refreshUndoBtns();
+}
+
+function renderPanel(side){
+  const t=teamOf(side), placed=placedOf(side), body=$('#panel'+side+' .pBody');
+  const squad=t.players.filter(p=>!p.reserve), bench=t.players.filter(p=>p.reserve);
+  const row=p=>{
+    const inF=!!placed[p.id];
+    const tag = inF ? (placed[p.id].slot? posName(placed[p.id].slot) : 'Em campo') : '';
+    return `<button class="pl${inF?' inField':''}" data-pid="${p.id}" data-side="${side}" style="--c:${esc(t.color)}">
+      <span class="num">${esc(p.number||'')}</span>
+      <span class="tx"><span class="nm">${esc(p.name)}</span>${tag?`<span class="tag">${esc(tag)}</span>`:''}</span>
+      <span class="go">›</span></button>`;
+  };
+  body.innerHTML =
+    `<div class="sect">Jogadores</div>`+
+    (squad.length? squad.map(row).join('') : `<div class="empty">Nenhum jogador ainda.<br>Toque no botão abaixo.</div>`)+
+    `<div class="sect">Reservas</div>`+
+    (bench.length? bench.map(row).join('') : `<div class="empty">Sem reservas.</div>`)+
+    `<button class="btn wide" style="margin-top:12px" data-add="${side}"><span class="ico">＋</span>Adicionar jogador</button>`+
+    `<button class="btn wide sm" style="margin-top:7px" data-lib="${side}"><span class="ico">👥</span>Trocar de time</button>`;
+}
+
+function renderField(){
+  const layer=$('#layer');
+  $$('.slot,.chip',layer).forEach(e=>e.remove());
+  const frag=document.createDocumentFragment();
+  const focus=DB.settings.focus;
+
+  ['A','B'].forEach(side=>{
+    const t=teamOf(side), placed=placedOf(side);
+    const dim = focus!=='both' && focus!==side;
+    if(focus!=='both' && focus!==side && !DB.settings.showEmpty){}
+    /* vagas vazias */
+    if(DB.settings.showEmpty && !dim){
+      POS.forEach(p=>{
+        if(slotOwner(side,p.id)) return;
+        const c=coordOf(side,p);
+        const el=document.createElement('div');
+        el.className='slot lv'+p.lvl+(side==='B'?' lblDown':''); el.dataset.slot=p.id; el.dataset.side=side;
+        el.style.left=pctL(c.x)+'%'; el.style.top=pctT(c.y)+'%';
+        el.innerHTML=`<div class="ring"></div><div class="lb">${esc(p.curto)}</div>`;
+        frag.appendChild(el);
+      });
+    }
+    /* jogadores em campo */
+    for(const pid in placed){
+      const pl=placed[pid], pj=playerById(side,pid);
+      if(!pj){ delete placed[pid]; continue; }
+      const el=document.createElement('div');
+      el.className='chip lv'+(pl.slot?POSBY[pl.slot].lvl:0)+(dim?' sideDim':'')+(side==='B'?' lblDown':'');
+      el.dataset.pid=pid; el.dataset.side=side;
+      el.style.setProperty('--c',t.color);
+      el.style.left=pctL(pl.x)+'%'; el.style.top=pctT(pl.y)+'%';
+      /* o nome da posição só cabe embaixo do jogador quando um time está
+         sozinho em cena; com os dois times, viraria uma terceira linha de texto */
+      const lbl = (focus===side) ? `<div class="lb">${esc(pl.slot?posName(pl.slot):'livre')}</div>` : '';
+      el.style.zIndex = (focus===side) ? 8 : 6;
+      el.innerHTML=`<div class="nm">${esc(shortName(pj.name))}</div>
+        <div class="disc">${esc(pj.number||'')}</div>${lbl}`;
+      frag.appendChild(el);
+    }
+  });
+  layer.appendChild(frag);
+  layer.style.setProperty('--fs', DB.settings.fs);
+}
+function shortName(n){
+  if(!DB.settings.shortNames) return n;
+  const parts=String(n).trim().split(/\s+/);
+  return parts.length<=1 ? parts[0] : parts[0];
+}
+function renderCount(){
+  /* no celular em pé estes dois botões são a porta de entrada das listas dos
+     times, já que os painéis viram gavetas escondidas */
+  $('#count').innerHTML=['A','B'].map(s=>{
+    const n=onFieldCount(s), t=teamOf(s);
+    return `<button class="cbtn" data-open="${s}">
+      <span class="dot" style="background:${esc(t.color)}"></span>
+      <span class="tx"><b>${esc(t.name)}</b><small class="${n===11?'':'bad'}">${n} de 11 em campo</small></span>
+      <span class="ico">👥</span></button>`;
+  }).join('');
+  /* com as listas visíveis, a mesma contagem aparece no cabeçalho delas */
+  ['A','B'].forEach(s=>{
+    const n=onFieldCount(s), el=$('#panel'+s+' .cnt');
+    el.textContent=n+' de 11'; el.className='cnt'+(n===11?'':' bad');
+  });
+}
+
+/* ==================================================================
+   colocar / tirar jogadores
+   ================================================================== */
+function placeAt(side,pid,slotId,xy){
+  const placed=placedOf(side), pj=playerById(side,pid);
+  if(!pj) return;
+  const prev=placed[pid];
+  let coords=xy;
+  if(slotId){
+    const other=slotOwner(side,slotId);
+    if(other && other!==pid){
+      const op=playerById(side,other);
+      delete placed[other];
+      logIt(`${teamOf(side).name}: ${op?op.name:'jogador'} saiu e ${pj.name} entrou como ${posName(slotId)}.`);
+      toast(`${op?op.name:'Jogador'} saiu · ${pj.name} entrou`);
+    }
+    coords=coordOf(side,POSBY[slotId]);
+  }
+  placed[pid]={slot:slotId||null, x:coords.x, y:coords.y};
+  if(!slotId){
+    if(!prev) logIt(`${teamOf(side).name}: ${pj.name} entrou em campo (posição livre).`);
+  }else if(!prev){
+    logIt(`${teamOf(side).name}: ${pj.name} entrou como ${posName(slotId)}.`);
+    toast(`${pj.name} → ${posName(slotId)}`);
+  }else if(prev.slot!==slotId){
+    logIt(`${teamOf(side).name}: ${pj.name} mudou de ${prev.slot?posName(prev.slot):'posição livre'} para ${posName(slotId)}.`);
+    toast(`${pj.name} → ${posName(slotId)}`);
+  }
+  save();
+}
+function removeFromField(side,pid,silent){
+  const placed=placedOf(side), pj=playerById(side,pid);
+  if(!placed[pid]) return;
+  const was=placed[pid].slot;
+  delete placed[pid];
+  if(!silent && pj) logIt(`${teamOf(side).name}: ${pj.name} saiu de campo${was?' ('+posName(was)+')':''}.`);
+  save();
+}
+
+/* ==================================================================
+   arrastar
+   ================================================================== */
+let drag=null;
+const DIST=8;
+
+function startPointer(e, pid, side, from, el){
+  if(e.pointerType==='mouse' && e.button!==0) return;
+  drag={pid,side,from,x0:e.clientX,y0:e.clientY,x:e.clientX,y:e.clientY,
+        on:false, id:e.pointerId, hold:null, el};
+  if(from==='field'){ drag.on=false; }
+  else{
+    drag.hold=setTimeout(()=>{ if(drag && !drag.on) beginDrag(); },240);
+  }
+  window.addEventListener('pointermove',movePointer,{passive:false});
+  window.addEventListener('pointerup',endPointer);
+  window.addEventListener('pointercancel',cancelPointer);
+}
+function beginDrag(){
+  if(!drag || drag.on) return;
+  drag.on=true;
+  clearTimeout(drag.hold);
+  const pj=playerById(drag.side,drag.pid), t=teamOf(drag.side);
+  if(!pj){ drag=null; return; }
+  const g=$('#ghost');
+  g.className='chip';
+  g.style.setProperty('--c',t.color);
+  g.style.position='fixed'; g.style.left=drag.x+'px'; g.style.top=drag.y+'px';
+  g.innerHTML=`<div class="nm">${esc(shortName(pj.name))}</div><div class="disc">${esc(pj.number||'')}</div>`;
+  g.classList.remove('hidden');
+  document.body.classList.add('dragging');
+  if(drag.el) drag.el.style.opacity='.3';
+}
+function movePointer(e){
+  if(!drag || e.pointerId!==drag.id) return;
+  drag.x=e.clientX; drag.y=e.clientY;
+  const dx=Math.abs(e.clientX-drag.x0), dy=Math.abs(e.clientY-drag.y0);
+  if(!drag.on){
+    if(drag.from==='field'){ if(dx>6||dy>6) beginDrag(); }
+    else if(dx>DIST && dx>dy){ beginDrag(); }
+    else if(dy>14){ clearTimeout(drag.hold); cleanupDrag(); return; }
+  }
+  if(!drag.on) return;
+  e.preventDefault();
+  const g=$('#ghost'); g.style.left=drag.x+'px'; g.style.top=drag.y+'px';
+  highlight(nearestSlot(drag.side,drag.x,drag.y));
+}
+function nearestSlot(side,x,y){
+  if(!DB.settings.magnet) {
+    /* mesmo com ímã desligado, mostra a vaga muito próxima */
+  }
+  const els=$$('#layer .slot[data-side="'+side+'"]');
+  let best=null, bd=Infinity;
+  const lim=clamp(72*view.z,54,170);
+  els.forEach(el=>{
+    const r=el.getBoundingClientRect();
+    const d=Math.hypot(x-(r.left+r.width/2), y-(r.top+r.height/2));
+    if(d<bd){ bd=d; best=el; }
+  });
+  return (best && bd<lim)? best : null;
+}
+function highlight(el){
+  $$('#layer .slot.hot').forEach(e=>{ if(e!==el) e.classList.remove('hot'); });
+  if(el) el.classList.add('hot');
+}
+function endPointer(e){
+  if(!drag || e.pointerId!==drag.id) return;
+  const d=drag;
+  /* dedo parado = toque, mesmo que o arraste já tivesse começado pela demora */
+  const parado = Math.hypot(d.x-d.x0, d.y-d.y0) < 10;
+  if(!d.on || parado){ cleanupDrag(); openPlayerSheet(d.side,d.pid,d.from); return; }
+
+  const x=d.x,y=d.y;
+  const under=document.elementFromPoint(x,y);
+  const overPanel = under && under.closest && under.closest('.panel');
+  const overStage = under && under.closest && under.closest('#stage');
+  const hot=$('#layer .slot.hot');
+
+  cleanupDrag();
+  pushUndo();
+  if(overPanel){
+    if(d.from==='field'){ removeFromField(d.side,d.pid); toast('Jogador tirado de campo'); }
+  }else if(hot && hot.dataset.side===d.side){
+    placeAt(d.side,d.pid,hot.dataset.slot);
+  }else if(overStage && !DB.settings.magnet){
+    const p=clientToPitch(x,y);
+    placeAt(d.side,d.pid,null,{x:clamp(p.x,-2,107),y:clamp(p.y,-2,70)});
+  }else if(overStage && hot===null && d.from==='field'){
+    undoStack.pop(); /* nada mudou */
+    toast('Solte em cima de uma posição');
+  }else{
+    undoStack.pop();
+  }
+  renderAll();
+}
+function cancelPointer(e){ if(drag && e.pointerId===drag.id){ cleanupDrag(); renderField(); } }
+function cleanupDrag(){
+  if(drag){ clearTimeout(drag.hold); if(drag.el) drag.el.style.opacity=''; }
+  drag=null;
+  $('#ghost').classList.add('hidden');
+  document.body.classList.remove('dragging');
+  $$('#layer .slot.hot').forEach(e=>e.classList.remove('hot'));
+  window.removeEventListener('pointermove',movePointer);
+  window.removeEventListener('pointerup',endPointer);
+  window.removeEventListener('pointercancel',cancelPointer);
+}
+
+/* ==================================================================
+   modo "escolher posição" (para quem prefere tocar)
+   ================================================================== */
+let picking=null;
+function startPicking(side,pid){
+  const pj=playerById(side,pid); if(!pj) return;
+  picking={side,pid};
+  closeMenu(); closePanels();
+  $('#pickBar').classList.add('on');
+  $('#pickBar .t').innerHTML=`Toque na posição para <b>${esc(pj.name)}</b><small>Time: ${esc(teamOf(side).name)}</small>`;
+  $$('#layer .slot[data-side="'+side+'"]').forEach(e=>e.classList.add('pickable'));
+  $$('#layer .chip[data-side="'+side+'"]').forEach(e=>e.classList.add('pickable'));
+}
+function stopPicking(){
+  picking=null;
+  $('#pickBar').classList.remove('on');
+  $$('#layer .pickable').forEach(e=>e.classList.remove('pickable'));
+}
+
+/* ==================================================================
+   folhas de ação / diálogos
+   ================================================================== */
+function sheet(title, sub, items){
+  const w=$('#sheetWrap');
+  w.innerHTML=`<div class="sheet"><div class="sh"><b>${esc(title)}</b>${sub?`<small>${esc(sub)}</small>`:''}</div>
+    <div class="sbody">${items.map((it,i)=>it.sep?'':`<button class="si${it.danger?' dang':''}" data-i="${i}">
+      <span class="ico">${it.ico||''}</span><span>${esc(it.label)}${it.sub?`<small>${esc(it.sub)}</small>`:''}</span></button>`).join('')}
+    </div><button class="si" data-close="1" style="justify-content:center;font-weight:700;border:0"><span>Cancelar</span></button></div>`;
+  w.classList.add('on');
+  w.onclick=e=>{
+    if(e.target===w || e.target.closest('[data-close]')){ w.classList.remove('on'); return; }
+    const b=e.target.closest('.si[data-i]'); if(!b) return;
+    w.classList.remove('on');
+    const it=items[+b.dataset.i]; if(it && it.run) it.run();
+  };
+}
+function closeSheet(){ $('#sheetWrap').classList.remove('on'); }
+
+function modal(title, bodyHTML, buttons){
+  const w=$('#modalWrap');
+  w.innerHTML=`<div class="modal"><h3>${esc(title)}</h3><div class="mc">${bodyHTML}</div>
+    <div class="mf">${buttons.map((b,i)=>`<button class="btn ${b.cls||''}" data-i="${i}">${esc(b.label)}</button>`).join('')}</div></div>`;
+  w.classList.add('on');
+  w.onclick=e=>{
+    const b=e.target.closest('.mf .btn'); if(!b) return;
+    const cfg=buttons[+b.dataset.i];
+    if(!cfg.keep) w.classList.remove('on');
+    if(cfg.run) cfg.run(w);
+  };
+  return w;
+}
+function closeModal(){ $('#modalWrap').classList.remove('on'); }
+function confirmBox(title,msg,okLabel,danger){
+  return new Promise(res=>{
+    modal(title,`<p style="margin:2px 0 6px;line-height:1.5">${esc(msg)}</p>`,[
+      {label:'Cancelar', run:()=>res(false)},
+      {label:okLabel||'Confirmar', cls:danger?'dang':'acc', run:()=>res(true)}
+    ]);
+  });
+}
+
+/* ==================================================================
+   ações com jogador
+   ================================================================== */
+function openPlayerSheet(side,pid,from){
+  const pj=playerById(side,pid); if(!pj) return;
+  const placed=placedOf(side)[pid];
+  const items=[];
+  if(placed){
+    items.push({ico:'🎯',label:'Mudar de posição',sub:'Toque na nova posição',run:()=>startPicking(side,pid)});
+    items.push({ico:'🔄',label:'Substituir por outro jogador',run:()=>openSubSheet(side,pid)});
+    items.push({ico:'⬅️',label:'Tirar de campo',run:async()=>{ pushUndo(); removeFromField(side,pid); renderAll(); toast(pj.name+' saiu de campo'); }});
+  }else{
+    items.push({ico:'⚽',label:'Colocar em campo',sub:'Toque na posição desejada',run:()=>startPicking(side,pid)});
+  }
+  items.push({ico:'✏️',label:'Editar nome e número',run:()=>openPlayerForm(side,pj)});
+  items.push({ico:pj.reserve?'⬆️':'⬇️',label:pj.reserve?'Tirar da lista de reservas':'Mandar para os reservas',
+    run:()=>{ pushUndo(); pj.reserve=!pj.reserve; save(); renderAll(); toast(pj.reserve?'Agora é reserva':'Voltou para a lista principal'); }});
+  items.push({ico:'🗑️',label:'Apagar jogador',danger:true,run:async()=>{
+    if(await confirmBox('Apagar jogador','Tem certeza que quer apagar '+pj.name+' da lista do '+teamOf(side).name+'? Isso não pode ser desfeito pelo botão Voltar depois de fechar o app.','Apagar',true)){
+      pushUndo(); removeFromField(side,pid,true);
+      const t=teamOf(side); t.players=t.players.filter(p=>p.id!==pid);
+      save(); renderAll(); toast('Jogador apagado');
+    }}});
+  sheet(pj.name, (pj.number?'Camisa '+pj.number+' · ':'')+teamOf(side).name+(placed?' · '+(placed.slot?posName(placed.slot):'posição livre'):''), items);
+}
+function openSubSheet(side,pidOut){
+  const t=teamOf(side), placed=placedOf(side);
+  const livres=t.players.filter(p=>!placed[p.id]);
+  if(!livres.length){ toast('Não há jogador fora de campo para entrar'); return; }
+  const out=playerById(side,pidOut);
+  sheet('Quem entra no lugar de '+out.name+'?','Toque no jogador que vai entrar',
+    livres.map(p=>({ico:p.reserve?'🟡':'⚪',label:(p.number?p.number+' · ':'')+p.name,sub:p.reserve?'Reserva':'',
+      run:()=>{ const slot=placed[pidOut]?placed[pidOut].slot:null; const xy=placed[pidOut]?{x:placed[pidOut].x,y:placed[pidOut].y}:null;
+        pushUndo(); removeFromField(side,pidOut,true); placeAt(side,p.id,slot,xy);
+        logIt(`${t.name}: substituição — ${out.name} saiu, ${p.name} entrou${slot?' ('+posName(slot)+')':''}.`);
+        renderAll(); toast(out.name+' ⇄ '+p.name); }})));
+}
+function openPlayerForm(side,player){
+  const isNew=!player;
+  const t=teamOf(side);
+  modal(isNew?'Novo jogador — '+t.name:'Editar jogador',
+    `<div class="fld"><label>Nome do jogador</label><input type="text" id="fNome" value="${esc(player?player.name:'')}" placeholder="Ex.: Pedrinho" autocomplete="off"></div>
+     <div class="fld"><label>Número da camisa</label><input type="text" id="fNum" inputmode="numeric" value="${esc(player?player.number:'')}" placeholder="Ex.: 10" autocomplete="off">
+     <div class="hint">No campo aparece o número dentro do círculo e o primeiro nome do jogador em cima.</div></div>`,
+    isNew? [
+      {label:'Fechar'},
+      {label:'Salvar e criar outro', keep:true, run:w=>{ if(savePlayer(side,null,w)){ w.querySelector('#fNome').value=''; w.querySelector('#fNum').value=''; w.querySelector('#fNome').focus(); } }},
+      {label:'Salvar', cls:'acc', run:w=>savePlayer(side,null,w)}
+    ] : [
+      {label:'Cancelar'},
+      {label:'Salvar', cls:'acc', run:w=>savePlayer(side,player,w)}
+    ]);
+  setTimeout(()=>{ const i=$('#fNome'); if(i) i.focus(); },120);
+}
+function savePlayer(side,player,w){
+  const nome=(w.querySelector('#fNome').value||'').trim();
+  const num=(w.querySelector('#fNum').value||'').trim().slice(0,3);
+  if(!nome){ toast('Escreva o nome do jogador'); return false; }
+  pushUndo();
+  const t=teamOf(side);
+  if(player){ player.name=nome; player.number=num; }
+  else t.players.push({id:uid(),name:nome,number:num,reserve:false});
+  save(); renderAll();
+  toast(player?'Jogador salvo':nome+' adicionado');
+  return true;
+}
+
+/* ==================================================================
+   times (biblioteca)
+   ================================================================== */
+function openTeamSheet(side){
+  const t=teamOf(side);
+  sheet(t.name,'Time do lado '+(side==='A'?'esquerdo':'direito'),[
+    {ico:'✏️',label:'Mudar o nome e a cor',run:()=>openTeamForm(t)},
+    {ico:'👥',label:'Escolher outro time salvo',run:()=>openTeamPicker(side)},
+    {ico:'➕',label:'Criar um time novo',run:()=>openTeamForm(null,side)},
+    {ico:'🧹',label:'Tirar todos do campo',run:async()=>{
+      if(await confirmBox('Tirar todos','Tirar todos os jogadores do '+t.name+' do campo? Os nomes continuam salvos na lista.','Tirar todos')){
+        pushUndo(); DB.match[side].placed={}; logIt(t.name+': todos os jogadores saíram do campo.'); save(); renderAll();
+      }}}
+  ]);
+}
+function openTeamPicker(side){
+  sheet('Escolher time','Toque no time que vai jogar deste lado',
+    DB.teams.map(t=>({ico:'●',label:t.name,sub:t.players.length+' jogador(es)',
+      run:()=>{ pushUndo(); DB.match[side].placed={}; DB.match[side].teamId=t.id; save(); renderAll(); toast('Time trocado para '+t.name); }}))
+    .concat([{ico:'➕',label:'Criar um time novo',run:()=>openTeamForm(null,side)}]));
+}
+function openTeamForm(team,sideForNew){
+  const cur=team?team.color:COLORS[DB.teams.length%COLORS.length];
+  modal(team?'Editar time':'Novo time',
+    `<div class="fld"><label>Nome do time</label><input type="text" id="tNome" value="${esc(team?team.name:'')}" placeholder="Ex.: Unidos da Vila" autocomplete="off"></div>
+     <div class="fld"><label>Cor do time</label><div class="colors" id="tCor">${
+       COLORS.map(c=>`<button data-c="${c}" style="background:${c}" class="${c===cur?'on':''}"></button>`).join('')}</div></div>`,
+    (team?[{label:'Apagar time',cls:'dang',run:()=>deleteTeam(team)}]:[]).concat([
+      {label:'Cancelar'},
+      {label:'Salvar',cls:'acc',run:w=>{
+        const nome=(w.querySelector('#tNome').value||'').trim()||'Time sem nome';
+        const cor=w.querySelector('#tCor .on') ? w.querySelector('#tCor .on').dataset.c : cur;
+        pushUndo();
+        if(team){ team.name=nome; team.color=cor; }
+        else{ const nt={id:uid(),name:nome,color:cor,players:[]}; DB.teams.push(nt);
+          if(sideForNew){ DB.match[sideForNew].placed={}; DB.match[sideForNew].teamId=nt.id; } }
+        save(); renderAll(); toast('Time salvo');
+      }}]));
+  setTimeout(()=>{
+    const box=$('#tCor'); if(!box) return;
+    box.onclick=e=>{ const b=e.target.closest('button[data-c]'); if(!b) return;
+      $$('button',box).forEach(x=>x.classList.remove('on')); b.classList.add('on'); };
+    const i=$('#tNome'); if(i) i.focus();
+  },120);
+}
+async function deleteTeam(team){
+  if(DB.teams.length<=2){ toast('É preciso ter pelo menos dois times'); return; }
+  if(!await confirmBox('Apagar time','Apagar o time '+team.name+' e todos os jogadores dele?','Apagar',true)) return;
+  pushUndo();
+  DB.teams=DB.teams.filter(t=>t.id!==team.id);
+  ['A','B'].forEach(s=>{ if(!teamOf(s)){ DB.match[s].placed={}; DB.match[s].teamId=DB.teams[0].id; } });
+  ensureTeams(); save(); renderAll(); toast('Time apagado');
+}
+
+/* ==================================================================
+   menu lateral
+   ================================================================== */
+const MENU_ROOT=[
+  {ico:'📝',t:'Anotações',s:'Escreva o que quiser sobre este jogo',go:'notas'},
+  {ico:'🕘',t:'Histórico de jogos',s:'Escalações e alterações dos jogos guardados',go:'hist'},
+  {ico:'👥',t:'Times salvos',s:'Criar, editar e apagar times e jogadores',go:'times'},
+  {ico:'🏁',t:'Encerrar e guardar este jogo',s:'Guarda no histórico e começa um jogo novo',go:'encerrar'},
+  {ico:'💾',t:'Cópia de segurança',s:'Guardar tudo num arquivo, ou trazer de volta',go:'backup'},
+  {ico:'⚙️',t:'Ajustes',s:'Tamanho das letras, ímã das posições e mais',go:'cfg'},
+  {ico:'❓',t:'Como usar o aplicativo',s:'Passo a passo rápido',go:'ajuda'},
+];
+let menuPane='root';
+function openMenu(){ $('#menu').classList.add('on'); $('#scrim').classList.add('on'); renderMenu('root'); }
+function closeMenu(){ $('#menu').classList.remove('on'); $('#scrim').classList.remove('on'); }
+function renderMenu(pane){
+  menuPane=pane;
+  const body=$('.mBody',$('#menu')), ttl=$('.ttl',$('#menu')), back=$('#menuBack');
+  back.style.display = pane==='root'?'none':'inline-flex';
+  if(pane==='root'){
+    ttl.textContent='Menu';
+    body.innerHTML=MENU_ROOT.map(m=>`<button class="mItem" data-go="${m.go}">
+      <span class="ico">${m.ico}</span><span class="tx"><b>${esc(m.t)}</b><small>${esc(m.s)}</small></span><span class="go">›</span></button>`).join('')
+      +`<div class="mNote">Novas funções podem ser acrescentadas aqui no futuro.</div>`;
+  }
+  if(pane==='notas'){
+    ttl.textContent='Anotações';
+    body.innerHTML=`<textarea class="notes" id="notasTxt" placeholder="Ex.: o goleiro chegou atrasado, mudar o esquema no segundo tempo...">${esc(DB.match.notes)}</textarea>
+      <div class="mNote">O que você escrever aqui fica guardado junto com este jogo no histórico.</div>`;
+    const ta=$('#notasTxt');
+    ta.oninput=()=>{ DB.match.notes=ta.value; save(); };
+  }
+  if(pane==='hist'){
+    ttl.textContent='Histórico de jogos';
+    if(!DB.history.length){
+      body.innerHTML=`<div class="mNote">Nenhum jogo guardado ainda.<br><br>Quando terminar uma partida, use <b>Encerrar e guardar este jogo</b> no menu. Ele aparece aqui com a escalação e todas as alterações.</div>`;
+    }else{
+      body.innerHTML=DB.history.slice().reverse().map(h=>histCard(h)).join('');
+    }
+  }
+  if(pane==='times'){
+    ttl.textContent='Times salvos';
+    body.innerHTML=DB.teams.map(t=>`<button class="mItem" data-team="${t.id}">
+      <span class="ico" style="color:${esc(t.color)}">●</span>
+      <span class="tx"><b>${esc(t.name)}</b><small>${t.players.length} jogador(es)</small></span><span class="go">›</span></button>`).join('')
+      +`<button class="btn wide acc" style="margin-top:10px" data-newteam="1"><span class="ico">＋</span>Criar um time novo</button>`;
+  }
+  if(pane==='cfg'){
+    ttl.textContent='Ajustes';
+    const s=DB.settings;
+    body.innerHTML=`
+      <div class="fieldRow"><div class="tx"><b>Tamanho das letras no campo</b><small>Deixe maior se estiver difícil de ler</small></div></div>
+      <div class="segs" id="segFs" style="margin:8px 0 14px">
+        ${[['0.85','Pequeno'],['1','Médio'],['1.25','Grande'],['1.5','Bem grande']]
+          .map(([v,l])=>`<button data-v="${v}" class="${Math.abs(s.fs-parseFloat(v))<.01?'on':''}">${l}</button>`).join('')}</div>
+      <div class="fieldRow"><div class="tx"><b>Só o primeiro nome no campo</b><small>Deixa o campo mais limpo. O nome inteiro continua na lista do lado.</small></div>
+        <button class="sw ${s.shortNames?'on':''}" data-sw="shortNames"></button></div>
+      <div class="fieldRow"><div class="tx"><b>Mostrar as posições vazias</b><small>As marcas pontilhadas esperando jogador</small></div>
+        <button class="sw ${s.showEmpty?'on':''}" data-sw="showEmpty"></button></div>
+      <div class="fieldRow"><div class="tx"><b>Ímã das posições</b><small>Ligado, o jogador pula sozinho para a posição mais perto. Desligado, ele fica exatamente onde você soltar.</small></div>
+        <button class="sw ${s.magnet?'on':''}" data-sw="magnet"></button></div>
+      <div class="mNote" style="margin-top:18px">${storageOK?'Os dados ficam guardados neste aparelho, neste navegador.':'⚠️ Este aparelho não está guardando os dados. Evite fechar o aplicativo.'}</div>
+      <button class="btn wide dang" style="margin-top:6px" data-wipe="1"><span class="ico">🗑️</span>Apagar tudo e recomeçar</button>`;
+  }
+  if(pane==='backup'){
+    ttl.textContent='Cópia de segurança';
+    body.innerHTML=
+      (storageOK?'':`<div class="mNote" style="background:#3a2a10;border:1px solid #6b4d18;border-radius:10px;color:#ffe9a8;margin-bottom:12px">
+         ⚠️ Este celular <b>não está guardando</b> os dados sozinho. Salve uma cópia sempre que terminar um jogo.
+         <button class="btn wide sm" style="margin-top:8px" data-porque="1">Ver como resolver</button></div>`)+
+      `<button class="mItem" data-exportar="1"><span class="ico">💾</span>
+        <span class="tx"><b>Salvar cópia de segurança</b><small>Guarda os times, os jogadores, as anotações e o histórico num arquivo na pasta Downloads.</small></span></button>
+       <button class="mItem" data-importar="1"><span class="ico">📂</span>
+        <span class="tx"><b>Trazer uma cópia de volta</b><small>Escolhe um arquivo salvo antes e devolve tudo para o aplicativo. Substitui o que estiver aqui agora.</small></span></button>
+       <div class="sect">Se o botão de salvar não funcionar</div>
+       <button class="mItem" data-textobk="1"><span class="ico">📋</span>
+        <span class="tx"><b>Ver o texto da cópia</b><small>Copia tudo como texto, para guardar numa anotação ou mandar para você mesmo.</small></span></button>
+       <button class="mItem" data-colarbk="1"><span class="ico">📥</span>
+        <span class="tx"><b>Colar o texto da cópia</b><small>Devolve tudo a partir do texto que você guardou.</small></span></button>
+       <div class="mNote">Serve também para passar tudo para outro celular: salve a cópia num, e traga de volta no outro.</div>`;
+  }
+  if(pane==='ajuda'){ ttl.textContent='Como usar'; body.innerHTML=helpHTML(); }
+}
+function histCard(h){
+  const d=new Date(h.date);
+  const dt=d.toLocaleDateString('pt-BR')+' · '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const lineup=side=>{
+    const arr=POS.map(p=>{ const e=h[side].lineup.find(l=>l.slot===p.id); return e?`<div><i>${esc(p.curto)}:</i> ${esc(e.number?e.number+' · ':'')}${esc(e.name)}</div>`:''; }).join('');
+    const livres=h[side].lineup.filter(l=>!l.slot).map(e=>`<div><i>livre:</i> ${esc(e.name)}</div>`).join('');
+    return (arr+livres)||'<div><i>ninguém em campo</i></div>';
+  };
+  return `<div class="hist" data-h="${h.id}">
+    <button class="hh"><span class="tx"><b>${esc(h.A.name)} ${h.score.A} × ${h.score.B} ${esc(h.B.name)}</b><small>${esc(dt)}</small></span><span>›</span></button>
+    <div class="hb">
+      <div class="sect">Escalação final — ${esc(h.A.name)}</div><div class="lineup">${lineup('A')}</div>
+      <div class="sect">Escalação final — ${esc(h.B.name)}</div><div class="lineup">${lineup('B')}</div>
+      <div class="sect">O que aconteceu</div>
+      ${h.log.length? h.log.map(l=>`<div class="logLine"><span class="mn">${l.min==null?'—':l.min+"'"}</span><span>${esc(l.txt)}</span></div>`).join('') : '<div class="mNote">Nada foi registrado.</div>'}
+      ${h.notes?`<div class="sect">Anotações</div><div class="lineup" style="white-space:pre-wrap">${esc(h.notes)}</div>`:''}
+      <button class="btn wide dang sm" style="margin-top:12px" data-delh="${h.id}">Apagar este jogo do histórico</button>
+    </div></div>`;
+}
+function helpHTML(){
+  const steps=[
+    ['Escreva os jogadores','Na lista do lado esquerdo (seu time) e do lado direito (o adversário), toque em "Adicionar jogador" e escreva o nome e o número da camisa.'],
+    ['Coloque em campo','Toque no nome do jogador e escolha "Colocar em campo". Depois toque na posição que ele vai ocupar. Se preferir, você também pode arrastar o nome com o dedo até a posição.'],
+    ['Mude quando quiser','Toque em um jogador que já está no campo para mudar de posição, substituir por um reserva ou tirar de campo.'],
+    ['Aproxime o campo','Use dois dedos para aproximar e afastar, ou os botões ＋ e −. O botão ⤢ volta o campo ao tamanho normal e o ⟳ gira o campo.'],
+    ['Guarde o jogo','No fim da partida, abra o Menu e toque em "Encerrar e guardar este jogo". Tudo fica no histórico: escalação, substituições e o minuto de cada mudança.'],
+  ];
+  return steps.map((s,i)=>`<div class="helpStep"><div class="n">${i+1}</div><div class="tx"><b>${esc(s[0])}</b><span>${esc(s[1])}</span></div></div>`).join('')
+    +`<div class="mNote">Dica: o botão <b>Vendo: os dois</b>, em cima do campo, deixa mostrar só um time de cada vez — fica bem mais fácil de enxergar.</div>`;
+}
+
+/* ==================================================================
+   encerrar jogo
+   ================================================================== */
+async function encerrarJogo(){
+  const ta=teamOf('A'), tb=teamOf('B');
+  if(!await confirmBox('Encerrar o jogo',
+    `Guardar "${ta.name} ${DB.match.score.A} × ${DB.match.score.B} ${tb.name}" no histórico e começar um jogo novo? Os times e os jogadores continuam salvos.`,
+    'Encerrar e guardar')) return;
+  const snapSide=side=>{
+    const t=teamOf(side), placed=placedOf(side);
+    return { name:t.name, color:t.color,
+      lineup:Object.keys(placed).map(pid=>{ const p=playerById(side,pid);
+        return {slot:placed[pid].slot, name:p?p.name:'?', number:p?p.number:''}; }) };
+  };
+  logIt('Fim de jogo.');
+  DB.history.push({ id:uid(), date:Date.now(), A:snapSide('A'), B:snapSide('B'),
+    score:{...DB.match.score}, log:DB.match.log.slice(), notes:DB.match.notes, dur:elapsed() });
+  pushUndo();
+  DB.match=blankMatch(ta.id,tb.id);
+  save(); renderAll(); closeMenu();
+  if(!storageOK){
+    /* neste aparelho o jogo recém-guardado some ao fechar: é a hora certa de
+       insistir na cópia, e não depois que já perdeu */
+    modal('Guarde a cópia agora',
+      `<p style="margin:2px 0;line-height:1.5">O jogo foi para o histórico, mas <b>este celular não guarda os dados ao fechar</b>. Salve uma cópia no arquivo para não perder este jogo.</p>`,
+      [{label:'Agora não'},{label:'Salvar cópia',cls:'acc',run:exportarBackup}]);
+  }else toast('Jogo guardado no histórico');
+}
+
+/* ==================================================================
+   ligações de eventos
+   ================================================================== */
+function closePanels(){ $('#panelA').classList.remove('open'); $('#panelB').classList.remove('open'); $('#scrim').classList.remove('on'); }
+
+function wire(){
+  $('#btnMenu').onclick=openMenu;
+  $('#menuClose').onclick=closeMenu;
+  $('#menuBack').onclick=()=>renderMenu('root');
+  $('#scrim').onclick=()=>{ closeMenu(); closePanels(); };
+  $('#btnHelp').onclick=()=>{ openMenu(); renderMenu('ajuda'); };
+  $('#btnWarn').onclick=avisoArmazenamento;
+  $('#fileIn').onchange=e=>{ const f=e.target.files[0]; if(f) importarBackup(f); e.target.value=''; };
+
+  $('#teamA').onclick=()=>openTeamSheet('A');
+  $('#teamB').onclick=()=>openTeamSheet('B');
+
+  ['A','B'].forEach(s=>{
+    $('#sc'+s).onclick=()=>{
+      const t=teamOf(s);
+      sheet('Placar — '+t.name, 'Placar agora: '+DB.match.score[s],[
+        {ico:'⚽',label:'Marcar um gol',run:()=>{ pushUndo(); DB.match.score[s]++; logIt('Gol do '+t.name+'. Placar: '+DB.match.score.A+' x '+DB.match.score.B+'.'); save(); renderTop(); toast('Gol do '+t.name+'!'); }},
+        {ico:'↩️',label:'Tirar um gol',run:()=>{ if(DB.match.score[s]<=0) return; pushUndo(); DB.match.score[s]--; logIt('Gol retirado do '+t.name+'. Placar: '+DB.match.score.A+' x '+DB.match.score.B+'.'); save(); renderTop(); }},
+      ]);
+    };
+  });
+
+  $('#btnPlay').onclick=()=>{
+    const c=DB.match.clock;
+    if(c.running){ c.base=elapsed(); c.running=false; c.at=null; logIt('Relógio pausado.'); }
+    else{
+      if(!DB.match.started){ DB.match.started=true; logIt('Início do jogo.'); registrarEscalacaoInicial(); }
+      c.at=Date.now(); c.running=true; logIt('Relógio iniciado.');
+    }
+    save(); renderTop();
+  };
+  $('#clockBox').onclick=()=>{
+    const c=DB.match.clock;
+    sheet('Relógio da partida', mmss(elapsed())+' · '+c.period+'º tempo',[
+      {ico:'⏭️',label:'Começar o '+(c.period+1)+'º tempo',sub:'Zera o relógio',run:()=>{ pushUndo(); c.period++; c.base=0; c.at=c.running?Date.now():null; logIt('Início do '+c.period+'º tempo.'); save(); renderTop(); }},
+      {ico:'⏱️',label:'Zerar o relógio',run:()=>{ pushUndo(); c.base=0; c.at=c.running?Date.now():null; save(); renderTop(); }},
+    ]);
+  };
+
+  $('#btnUndo').onclick=undo;
+  $('#btnRedo').onclick=redo;
+
+  $('#zIn').onclick=()=>zoomCenter(1.3);
+  $('#zOut').onclick=()=>zoomCenter(1/1.3);
+  $('#zFit').onclick=()=>{ fitView(); toast('Campo ajustado à tela'); };
+  $('#zRot').onclick=()=>{ DB.settings.rotAuto=false; DB.settings.rot = DB.settings.rot===0?90:0;
+    save(); view.z=1; view.tx=0; view.ty=0; boardFit(); applyView(); };
+  $('#btnView').onclick=()=>{
+    const order=['both','A','B'], i=order.indexOf(DB.settings.focus);
+    DB.settings.focus=order[(i+1)%3]; save(); renderTop(); renderField();
+  };
+
+  $('#count').onclick=e=>{
+    const b=e.target.closest('[data-open]'); if(!b) return;
+    if(!document.body.classList.contains('narrow')) return; /* já estão visíveis */
+    closePanels();
+    $('#panel'+b.dataset.open).classList.add('open'); $('#scrim').classList.add('on');
+  };
+  $$('.closeP').forEach(b=>b.onclick=closePanels);
+  $$('.pTeam').forEach(b=>b.onclick=()=>openTeamSheet(b.dataset.teamSide));
+  $('#pickCancel').onclick=stopPicking;
+
+  /* painéis: toque e arraste */
+  ['A','B'].forEach(side=>{
+    const p=$('#panel'+side);
+    p.addEventListener('pointerdown',e=>{
+      const row=e.target.closest('.pl'); if(!row) return;
+      startPointer(e,row.dataset.pid,side,'panel',row);
+    });
+    p.addEventListener('click',e=>{
+      const add=e.target.closest('[data-add]'); if(add){ openPlayerForm(add.dataset.add,null); return; }
+      const lib=e.target.closest('[data-lib]'); if(lib){ openTeamPicker(lib.dataset.lib); return; }
+    });
+  });
+
+  /* campo: toque, arraste, zoom */
+  const layer=$('#layer');
+  layer.addEventListener('pointerdown',e=>{
+    const chip=e.target.closest('.chip');
+    if(chip){
+      if(picking && chip.dataset.side===picking.side){ return; }
+      e.stopPropagation();
+      startPointer(e,chip.dataset.pid,chip.dataset.side,'field',chip);
+    }
+  });
+  layer.addEventListener('click',e=>{
+    if(!picking) return;
+    const slot=e.target.closest('.slot'), chip=e.target.closest('.chip');
+    if(slot && slot.dataset.side===picking.side){
+      pushUndo(); placeAt(picking.side,picking.pid,slot.dataset.slot);
+      stopPicking(); renderAll();
+    }else if(chip && chip.dataset.side===picking.side && chip.dataset.pid!==picking.pid){
+      const alvo=placedOf(picking.side)[chip.dataset.pid];
+      if(alvo && alvo.slot){ pushUndo(); placeAt(picking.side,picking.pid,alvo.slot); stopPicking(); renderAll(); }
+    }
+  });
+
+  setupStageGestures();
+
+  /* menu: cliques */
+  $('.mBody',$('#menu')).addEventListener('click',async e=>{
+    const go=e.target.closest('[data-go]');
+    if(go){ if(go.dataset.go==='encerrar') encerrarJogo(); else renderMenu(go.dataset.go); return; }
+    const tm=e.target.closest('[data-team]');
+    if(tm){ const t=DB.teams.find(x=>x.id===tm.dataset.team); if(t) openTeamManage(t); return; }
+    if(e.target.closest('[data-newteam]')){ openTeamForm(null,null); return; }
+    const hh=e.target.closest('.hh'); if(hh){ hh.parentElement.classList.toggle('open'); return; }
+    const dh=e.target.closest('[data-delh]');
+    if(dh){ if(await confirmBox('Apagar do histórico','Apagar este jogo do histórico? Não dá para recuperar depois.','Apagar',true)){
+      DB.history=DB.history.filter(h=>h.id!==dh.dataset.delh); save(); renderMenu('hist'); toast('Jogo apagado'); } return; }
+    if(e.target.closest('[data-exportar]')){ exportarBackup(); return; }
+    if(e.target.closest('[data-importar]')){ $('#fileIn').click(); return; }
+    if(e.target.closest('[data-porque]')){ avisoArmazenamento(); return; }
+    if(e.target.closest('[data-textobk]')){ textoBackup(); return; }
+    if(e.target.closest('[data-colarbk]')){ colarBackup(); return; }
+    const seg=e.target.closest('#segFs button');
+    if(seg){ DB.settings.fs=parseFloat(seg.dataset.v); save(); renderField(); renderMenu('cfg'); return; }
+    const sw=e.target.closest('[data-sw]');
+    if(sw){ const k=sw.dataset.sw; DB.settings[k]=!DB.settings[k]; save(); renderField(); renderMenu('cfg'); return; }
+    if(e.target.closest('[data-wipe]')){
+      if(await confirmBox('Apagar tudo','Isso apaga TODOS os times, jogadores, anotações e o histórico de jogos deste aparelho. Não tem como voltar atrás. Tem certeza?','Apagar tudo',true)){
+        try{ localStorage.removeItem(KEY); }catch(e){}
+        DB=defaults(); undoStack=[]; redoStack=[]; save(); renderAll(); renderMenu('root'); toast('Tudo apagado');
+      } return;
+    }
+  });
+
+  window.addEventListener('resize',()=>{ setNarrow(); renderCount(); fitView(); });
+  window.addEventListener('orientationchange',()=>setTimeout(()=>{ setNarrow(); renderCount(); fitView(); },250));
+}
+
+function openTeamManage(t){
+  sheet(t.name, t.players.length+' jogador(es)',[
+    {ico:'✏️',label:'Mudar nome e cor',run:()=>openTeamForm(t)},
+    {ico:'⬅️',label:'Usar no lado esquerdo',run:()=>{ pushUndo(); DB.match.A.placed={}; DB.match.A.teamId=t.id; ensureTeams(); save(); renderAll(); closeMenu(); toast(t.name+' está no lado esquerdo'); }},
+    {ico:'➡️',label:'Usar no lado direito',run:()=>{ pushUndo(); DB.match.B.placed={}; DB.match.B.teamId=t.id; ensureTeams(); save(); renderAll(); closeMenu(); toast(t.name+' está no lado direito'); }},
+    {ico:'🗑️',label:'Apagar time',danger:true,run:()=>deleteTeam(t).then(()=>renderMenu('times'))},
+  ]);
+}
+
+function registrarEscalacaoInicial(){
+  if(DB.match.snapped) return;
+  DB.match.snapped=true;
+  ['A','B'].forEach(side=>{
+    const t=teamOf(side), placed=placedOf(side);
+    const lst=POS.filter(p=>slotOwner(side,p.id)).map(p=>{
+      const pj=playerById(side,slotOwner(side,p.id));
+      return p.curto+': '+(pj?((pj.number?pj.number+' ':'')+pj.name):'?');
+    });
+    if(lst.length) logIt('Escalação do '+t.name+' — '+lst.join('; ')+'.');
+  });
+}
+
+/* gestos no campo: pan com um dedo, zoom com dois -------------------- */
+function setupStageGestures(){
+  const st=$('#stage');
+  const pts=new Map();
+  let base=null;
+  st.addEventListener('pointerdown',e=>{
+    if(e.target.closest('.chip')||e.target.closest('.fab')||e.target.closest('#pickBar')||e.target.closest('#count')) return;
+    if(picking) return; /* no modo escolher posição, o toque é para escalar */
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pts.size===1) base={tx:view.tx,ty:view.ty,x:e.clientX,y:e.clientY};
+    if(pts.size===2){
+      const [a,b]=[...pts.values()];
+      base={z:view.z,tx:view.tx,ty:view.ty,d:Math.hypot(a.x-b.x,a.y-b.y),
+            mx:(a.x+b.x)/2,my:(a.y+b.y)/2};
+    }
+  });
+  st.addEventListener('pointermove',e=>{
+    if(!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(drag) return;
+    if(pts.size===1 && base){
+      view.tx=base.tx+(e.clientX-base.x); view.ty=base.ty+(e.clientY-base.y); applyView();
+    }else if(pts.size===2 && base && base.d){
+      const [a,b]=[...pts.values()];
+      const d=Math.hypot(a.x-b.x,a.y-b.y);
+      const z1=clamp(base.z*(d/base.d),.75,6);
+      const st2=st.getBoundingClientRect(), cx=st2.left+st2.width/2, cy=st2.top+st2.height/2;
+      view.tx=base.mx-cx-(z1/base.z)*(base.mx-cx-base.tx);
+      view.ty=base.my-cy-(z1/base.z)*(base.my-cy-base.ty);
+      view.z=z1; applyView();
+    }
+  });
+  const up=e=>{ pts.delete(e.pointerId); base=null;
+    if(pts.size===1){ const [a]=[...pts.values()]; base={tx:view.tx,ty:view.ty,x:a.x,y:a.y}; } };
+  st.addEventListener('pointerup',up);
+  st.addEventListener('pointercancel',up);
+  st.addEventListener('wheel',e=>{ e.preventDefault(); zoomAt(view.z*(e.deltaY<0?1.12:1/1.12), e.clientX, e.clientY); },{passive:false});
+  st.addEventListener('dblclick',e=>zoomAt(view.z<2?view.z*1.8:1, e.clientX, e.clientY));
+}
+
+function setNarrow(){ document.body.classList.toggle('narrow', window.innerWidth<760); }
+
+/* ==================================================================
+   início
+   ================================================================== */
+function boot(){
+  load();
+  drawPitch();
+  $('#mk0').style.cssText='left:'+pctL(0)+'%;top:'+pctT(0)+'%';
+  $('#mk1').style.cssText='left:'+pctL(105)+'%;top:'+pctT(0)+'%';
+  $('#mk2').style.cssText='left:'+pctL(0)+'%;top:'+pctT(68)+'%';
+  setNarrow();
+  wire();
+  renderAll();
+  fitView();
+  setInterval(()=>{ $('#clock').textContent=mmss(elapsed()); },300);
+  if(!storageOK){
+    /* sem isto a pessoa perderia um jogo inteiro sem entender o motivo: o
+       aviso escondido nos Ajustes não serve, ninguém vai lá */
+    setTimeout(avisoArmazenamento, 500);
+  }else if(!DB.settings.seenHelp){
+    DB.settings.seenHelp=true; save();
+    setTimeout(()=>{ openMenu(); renderMenu('ajuda'); },400);
+  }
+  document.addEventListener('gesturestart',e=>e.preventDefault());
+  document.addEventListener('touchmove',e=>{ if(e.touches.length>1) e.preventDefault(); },{passive:false});
+}
+boot();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js');
+  });
+}
+</script>
+</body>
+</html>
