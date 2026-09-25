@@ -4,15 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Campo do Pedro</title>
-<meta name="theme-color" content="#0e1512">
-<meta name="description" content="Placar, cronômetro e escalação de futebol pelo celular — funciona sem internet depois de instalado.">
+<meta name="description" content="Monte os times e posicione os jogadores no campo.">
+<meta name="theme-color" content="#17221d">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="64x64" href="icons/favicon.png">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Campo do Pedro">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
+:root{color-scheme:dark}
+[hidden]{display:none!important}
 :root{
   --bg:#0e1512; --bar:#17221d; --bar2:#1d2b24; --line:#2a3a32;
   --fg:#eaf2ec; --muted:#93a99e; --acc:#ffd24a; --danger:#e0574a; --ok:#3fb56b;
@@ -23,6 +26,11 @@
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
+/* sem zoom de toque duplo em nenhum botão (no iPhone, dois toques rápidos
+   aproximavam a página inteira) */
+html{touch-action:manipulation}
+/* segurar o dedo num jogador não abre o menu do sistema */
+.pl,.chip,#stage{-webkit-touch-callout:none}
 body{
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   background:var(--bg);color:var(--fg);
@@ -37,39 +45,39 @@ input,textarea{-webkit-user-select:text;user-select:text}
 #app{position:fixed;inset:0;display:flex;flex-direction:column}
 #top{
   flex:0 0 auto;background:var(--bar);border-bottom:1px solid var(--line);
-  padding:calc(var(--safeT) + 6px) calc(var(--safeR) + 8px) 6px calc(var(--safeL) + 8px);
+  padding:calc(var(--safeT) + 3px) calc(var(--safeR) + 6px) 3px calc(var(--safeL) + 6px);
 }
 /* nas telas mais estreitas as barras quebram linha em vez de cortar um botão */
-.row1{display:flex;align-items:center;gap:6px;flex-wrap:wrap;row-gap:6px}
-.row2{display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap;row-gap:6px}
+.row1{display:flex;align-items:center;gap:5px;flex-wrap:wrap;row-gap:4px}
+.row2{display:flex;align-items:center;gap:5px;margin-top:4px;flex-wrap:wrap;row-gap:4px}
 @media (max-width:389px){ #btnMenu .lbl{display:none} }
 
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:6px;
-  min-height:40px;padding:0 12px;border-radius:10px;
+  min-height:33px;padding:0 10px;border-radius:9px;
   background:var(--bar2);border:1px solid var(--line);
-  font-size:14px;font-weight:600;white-space:nowrap;
+  font-size:13.5px;font-weight:600;white-space:nowrap;
 }
 .btn:active{background:#27382f}
-.btn.sm{min-height:34px;padding:0 10px;font-size:13px}
+.btn.sm{min-height:29px;padding:0 9px;font-size:12.5px}
 .btn.ghost{background:transparent}
 .btn.acc{background:var(--acc);color:#25200a;border-color:transparent}
 .btn.dang{background:#3a1f1c;border-color:#5c2a25;color:#ffb3aa}
 .btn.wide{width:100%}
 .btn[disabled]{opacity:.35}
-.ico{font-size:17px;line-height:1}
+.ico{font-size:16px;line-height:1}
 
 .teamBtn{
   flex:1 1 0;min-width:0;display:flex;align-items:center;gap:6px;
-  min-height:40px;padding:0 10px;border-radius:10px;background:var(--bar2);
+  min-height:33px;padding:0 9px;border-radius:9px;background:var(--bar2);
   border:1px solid var(--line);
 }
-.teamBtn .dot{flex:0 0 auto;width:12px;height:12px;border-radius:50%;background:#888}
+.teamBtn .dot{flex:0 0 auto;width:11px;height:11px;border-radius:50%;background:#888}
 .teamBtn .tn{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  font-weight:700;font-size:14px;text-align:left}
+  font-weight:700;font-size:13.5px;text-align:left}
 #scoreWrap{flex:0 0 auto;display:flex;align-items:center;gap:4px}
-.scBtn{min-width:38px;min-height:40px;padding:0 6px;border-radius:10px;background:var(--bar2);
-  border:1px solid var(--line);font-size:20px;font-weight:800;text-align:center}
+.scBtn{min-width:34px;min-height:33px;padding:0 5px;border-radius:9px;background:var(--bar2);
+  border:1px solid var(--line);font-size:18px;font-weight:800;text-align:center}
 .scX{color:var(--muted);font-weight:700}
 
 #clockBox{display:flex;align-items:center;gap:6px}
@@ -81,7 +89,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
 
 /* ---------- painéis ---------- */
 .panel{
-  flex:0 0 auto;width:clamp(150px,20vw,215px);
+  flex:0 0 auto;width:clamp(132px,17vw,188px);
   background:var(--bar);display:flex;flex-direction:column;min-height:0;
   border-right:1px solid var(--line);
 }
@@ -125,9 +133,9 @@ input,textarea{-webkit-user-select:text;user-select:text}
 .mk{position:absolute;width:0;height:0}
 
 /* Vaga vazia e jogador são ancorados pelo CÍRCULO, que fica exatamente sobre a
-   coordenada da posição. O texto é posicionado fora do círculo: para cima no
-   time A e para baixo no time B, de modo que as duas faixas de texto nunca se
-   cruzem quando os dois times estão em campo ao mesmo tempo. */
+   coordenada da posição. O nome do jogador fica sempre colado embaixo do
+   círculo, para os dois times e também com o campo girado — o contra-giro do
+   próprio jogador (linha abaixo) já cuida de manter o texto reto e embaixo. */
 .slot,.chip{position:absolute;transform:translate(-50%,-50%);
   width:calc(22px*var(--fs));height:calc(22px*var(--fs))}
 /* com o campo girado, o jogador gira ao contrário para o nome continuar em pé */
@@ -141,37 +149,17 @@ input,textarea{-webkit-user-select:text;user-select:text}
   color:#fff;display:grid;place-items:center;font-weight:800;font-size:calc(11px*var(--fs));
   border:1.6px solid rgba(255,255,255,.92);box-shadow:0 2px 5px rgba(0,0,0,.55)}
 
-.slot .lb,.chip .nm,.chip .lb{position:absolute;left:50%;transform:translateX(-50%);
-  white-space:nowrap;text-align:center;pointer-events:none}
-.slot .lb,.chip .lb{font-size:calc(8px*var(--fs));font-weight:700;color:rgba(255,255,255,.85);
+.slot .lb,.chip .lb{position:absolute;left:50%;transform:translateX(-50%);
+  white-space:nowrap;text-align:center;pointer-events:none;top:calc(100% + 1px);
+  font-size:calc(8px*var(--fs));font-weight:700;color:rgba(255,255,255,.85);
   text-shadow:0 1px 2px rgba(0,0,0,.85);max-width:calc(68px*var(--fs));overflow:hidden;text-overflow:ellipsis}
-.chip .nm{max-width:calc(52px*var(--fs));font-size:calc(9px*var(--fs));font-weight:800;color:#fff;
-  background:rgba(0,0,0,.66);padding:0 3px;border-radius:4px;line-height:1.45;
-  overflow:hidden;text-overflow:ellipsis}
-/* time A: texto acima do círculo */
-.slot .lb,.chip .nm{bottom:calc(100% + 1px)}
-.chip .lb{top:calc(100% + 1px)}
-.lv1.slot .lb,.lv1.chip .nm{bottom:calc(100% + 13px*var(--fs))}
-/* time B: texto abaixo do círculo */
-.lblDown .lb,.lblDown .nm{bottom:auto;top:calc(100% + 1px)}
-.chip.lblDown .lb{top:auto;bottom:calc(100% + 1px)}
-.lblDown.lv1.slot .lb,.lblDown.lv1.chip .nm{top:calc(100% + 13px*var(--fs))}
 
-/* Com o campo girado, o comprimento do campo passa a ser a vertical da tela:
-   o texto do time A sai para um lado e o do time B para o outro, senão os dois
-   times ficariam escrevendo na mesma faixa. */
-#layer.rot90 .slot .lb,#layer.rot90 .chip .nm,#layer.rot90 .chip .lb{
-  left:auto;right:auto;top:50%;bottom:auto;transform:translateY(-50%)}
-#layer.rot90 .slot .lb,#layer.rot90 .chip .nm{left:calc(100% + 3px)}
-#layer.rot90 .chip .lb{right:calc(100% + 3px)}
-#layer.rot90 .lblDown .lb,#layer.rot90 .lblDown .nm{left:auto;right:calc(100% + 3px)}
-#layer.rot90 .chip.lblDown .lb{right:auto;left:calc(100% + 3px)}
-
-.slot.hot .ring{border-style:solid;border-color:var(--acc);background:rgba(255,210,74,.3);transform:scale(1.35)}
-.slot.hot .lb{color:var(--acc)}
-.slot.pickable{pointer-events:auto}
-.slot.pickable .ring{border-color:var(--acc);border-style:solid;animation:pulse 1.1s infinite}
-@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.22)}}
+/* nome do jogador: sempre embaixo do círculo, bem coladinho */
+.chip .nm{position:absolute;left:50%;transform:translateX(-50%);top:calc(100% + 2px);
+  white-space:normal;word-break:normal;overflow-wrap:break-word;text-align:center;pointer-events:none;
+  width:max-content;max-width:calc(150px*var(--fs));font-size:calc(17px*var(--fs));font-weight:800;color:#fff;
+  background:rgba(0,0,0,.72);padding:2px 6px;border-radius:5px;line-height:1.22;
+  overflow:visible;text-overflow:clip}
 
 .sideDim{opacity:.34}
 .sideDim .nm,.sideDim .lb{display:none}
@@ -240,7 +228,7 @@ body.narrow .pHead .cnt{display:none}
 .mNote{color:var(--muted);font-size:12px;padding:10px 4px;line-height:1.5}
 
 textarea.notes{width:100%;min-height:45vh;background:var(--bar2);border:1px solid var(--line);
-  border-radius:12px;padding:12px;font-size:15px;line-height:1.5;resize:none}
+  border-radius:12px;padding:12px;font-size:16px;line-height:1.5;resize:none}
 
 .hist{border:1px solid var(--line);border-radius:12px;margin-bottom:9px;overflow:hidden;background:var(--bar2)}
 .hist .hh{display:flex;align-items:center;gap:8px;padding:11px 12px;width:100%;text-align:left}
@@ -315,7 +303,7 @@ textarea.notes{width:100%;min-height:45vh;background:var(--bar2);border:1px soli
 
 /* ---------- modo retrato: painéis viram gavetas ---------- */
 body.narrow .panel{
-  position:absolute;top:0;bottom:0;z-index:80;width:min(80vw,310px);
+  position:absolute;top:0;bottom:0;z-index:95;width:min(80vw,310px);
   box-shadow:0 0 40px rgba(0,0,0,.6);transition:transform .24s cubic-bezier(.3,.8,.3,1);
 }
 body.narrow #panelA{left:0;transform:translateX(-102%)}
@@ -332,8 +320,14 @@ body.narrow #scoreWrap{flex:1 1 auto;justify-content:center}
    sem o "1º tempo", que continua visível ao tocar no relógio */
 body.narrow #period{display:none}
 body.narrow #btnUndo .tx,body.narrow #btnRedo .tx{display:none}
-body.dragging.narrow .panel.open{transform:translateX(-88%);opacity:.2;pointer-events:none}
+body.dragging.narrow .panel.open{opacity:.2;pointer-events:none}
+body.dragging.narrow #panelA.open{transform:translateX(-88%)}
 body.dragging.narrow #panelB.open{transform:translateX(88%)}
+/* durante o arraste o campo fica todo à vista, sem a camada escura da gaveta */
+body.dragging #scrim.on{opacity:0;pointer-events:none}
+/* arrastando com o dedo, a lista para de rolar (no iPhone a rolagem da lista
+   competia com o arraste e podia cancelá-lo no meio do caminho) */
+body.touchdrag .pBody{overflow:hidden}
 
 /* ---------- ajuda ---------- */
 .helpStep{display:flex;gap:12px;margin-bottom:16px}
@@ -341,6 +335,18 @@ body.dragging.narrow #panelB.open{transform:translateX(88%)}
   display:grid;place-items:center;font-weight:800;font-size:14px}
 .helpStep .tx b{display:block;font-size:14.5px;margin-bottom:2px}
 .helpStep .tx span{font-size:13px;color:var(--muted);line-height:1.45}
+
+/* ---------- instalar na tela inicial ---------- */
+#instalar{position:fixed;left:10px;right:10px;bottom:calc(10px + var(--safeB));z-index:150;
+  display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:16px;
+  background:var(--bar);border:1px solid var(--line);box-shadow:0 12px 34px rgba(0,0,0,.6);
+  max-width:520px;margin:0 auto}
+#instalar img{flex:0 0 auto;width:44px;height:44px;border-radius:11px}
+#instalar .tx{flex:1 1 auto;min-width:0}
+#instalar .tx b{display:block;font-size:14.5px}
+#instalar .tx small{display:block;color:var(--muted);font-size:12px;line-height:1.35;margin-top:2px}
+#instalar .bts{flex:0 0 auto;display:flex;flex-direction:column;gap:6px}
+#instalar .bts .btn{min-height:34px}
 </style>
 </head>
 <body>
@@ -405,9 +411,9 @@ body.dragging.narrow #panelB.open{transform:translateX(88%)}
       <div class="pBody"></div>
     </aside>
   </div>
-</div>
 
-<div id="scrim"></div>
+  <div id="scrim"></div>
+</div>
 
 <nav id="menu">
   <div class="mHead">
@@ -420,9 +426,15 @@ body.dragging.narrow #panelB.open{transform:translateX(88%)}
 
 <div id="modalWrap"></div>
 <div id="sheetWrap"></div>
+<div id="instalar" class="hidden">
+  <img src="icons/icon-192.png" alt="">
+  <div class="tx"><b>Instalar o Campo do Pedro</b><small id="instTx">Fica com ícone na tela inicial e funciona sem internet.</small></div>
+  <div class="bts"><button class="btn sm acc" id="instSim">Instalar</button><button class="btn sm ghost" id="instNao">Agora não</button></div>
+</div>
 <div id="toast"></div>
 <div id="ghost" class="hidden"></div>
 <input type="file" id="fileIn" accept=".json,application/json,text/plain" style="display:none">
+
 <script>
 "use strict";
 
@@ -495,7 +507,7 @@ function defaults(){
   const a={id:uid(),name:'Time A',color:COLORS[0],players:[]};
   const b={id:uid(),name:'Time B',color:COLORS[1],players:[]};
   return { v:1, teams:[a,b], match:blankMatch(a.id,b.id), history:[],
-    settings:{magnet:true, focus:'both', fs:1, showEmpty:true, shortNames:true,
+    settings:{magnet:true, focus:'both', fs:1, showEmpty:true, shortNames:false,
               rot:0, rotAuto:true, seenHelp:false} };
 }
 function load(){
@@ -506,7 +518,55 @@ function load(){
   if(!DB || !DB.teams || !DB.match) DB=defaults();
   DB.settings=Object.assign(defaults().settings, DB.settings||{});
   if(!DB.history) DB.history=[];
+  normalizeDB();
   ensureTeams();
+}
+/* completa qualquer pedaço que falte nos dados guardados (cópia antiga ou
+   incompleta), para o aplicativo nunca abrir em branco nem travar */
+function normalizeDB(){
+  if(!Array.isArray(DB.teams)) DB.teams=[];
+  DB.teams=DB.teams.filter(t=>t && typeof t==='object');
+  DB.teams.forEach((t,i)=>{
+    if(!t.id) t.id=uid();
+    if(typeof t.name!=='string' || !t.name) t.name='Time '+(i+1);
+    if(typeof t.color!=='string' || !t.color) t.color=COLORS[i%COLORS.length];
+    if(!Array.isArray(t.players)) t.players=[];
+    t.players=t.players.filter(p=>p && typeof p==='object');
+    t.players.forEach(p=>{ if(!p.id) p.id=uid(); if(typeof p.name!=='string') p.name=String(p.name||'Jogador');
+      if(p.number==null) p.number=''; p.number=String(p.number); p.reserve=!!p.reserve; });
+  });
+  if(!DB.match || typeof DB.match!=='object') DB.match={};
+  const m=DB.match;
+  ['A','B'].forEach(s=>{
+    if(!m[s] || typeof m[s]!=='object') m[s]={teamId:null, placed:{}};
+    if(!m[s].placed || typeof m[s].placed!=='object') m[s].placed={};
+    for(const pid in m[s].placed){
+      const pl=m[s].placed[pid];
+      if(!pl || typeof pl!=='object' || !isFinite(pl.x) || !isFinite(pl.y)){ delete m[s].placed[pid]; continue; }
+      if(pl.slot && !POSBY[pl.slot]) pl.slot=null;
+    }
+  });
+  if(!m.id) m.id=uid();
+  if(!m.score || typeof m.score!=='object') m.score={A:0,B:0};
+  ['A','B'].forEach(s=>{ m.score[s]=Math.max(0,parseInt(m.score[s],10)||0); });
+  if(!m.clock || typeof m.clock!=='object') m.clock={running:false, base:0, at:null, period:1};
+  if(!isFinite(m.clock.base)) m.clock.base=0;
+  if(!(m.clock.period>=1)) m.clock.period=1;
+  if(m.clock.running && !isFinite(m.clock.at)){ m.clock.running=false; m.clock.at=null; }
+  if(!Array.isArray(m.log)) m.log=[];
+  m.log=m.log.filter(l=>l && typeof l==='object');
+  if(typeof m.notes!=='string') m.notes='';
+  if(!Array.isArray(DB.history)) DB.history=[];
+  DB.history=DB.history.filter(h=>h && typeof h==='object');
+  DB.history.forEach(h=>{
+    if(!h.id) h.id=uid();
+    ['A','B'].forEach(s=>{ if(!h[s] || typeof h[s]!=='object') h[s]={name:'Time '+s, lineup:[]};
+      if(!Array.isArray(h[s].lineup)) h[s].lineup=[];
+      h[s].lineup=h[s].lineup.filter(l=>l && typeof l==='object'); });
+    if(!Array.isArray(h.log)) h.log=[];
+    h.log=h.log.filter(l=>l && typeof l==='object');
+    if(!h.score || typeof h.score!=='object') h.score={A:0,B:0};
+  });
 }
 /* ------------------------------------------------------------------
    Por que o celular pode não estar guardando, e o que fazer
@@ -545,17 +605,45 @@ function avisoArmazenamento(){
 }
 
 /* cópia de segurança em arquivo — funciona mesmo quando o navegador se recusa
-   a guardar, porque baixar e ler arquivo continua permitido */
-function exportarBackup(){
+   a guardar, porque baixar e ler arquivo continua permitido.
+   Aberto pelo link do Claude, o aplicativo roda dentro de uma moldura que não
+   pode baixar arquivo por conta própria: quem entrega o arquivo é o próprio
+   Claude, que pede uma confirmação. Aberto como arquivo no aparelho, vale o
+   download normal do navegador. */
+let dlCap=null, dlCapReady=null;
+const emMoldura=(()=>{ try{ return window.self!==window.top; }catch(e){ return true; } })();
+function prepararDownloads(){
   try{
-    const data=JSON.stringify(DB,null,1);
-    const nome='campo-pedro-'+new Date().toISOString().slice(0,10)+'.json';
+    if(window.claude && typeof window.claude.use==='function'){
+      dlCapReady=Promise.resolve(window.claude.use('downloads'))
+        .then(ns=>{ dlCap=ns||null; return dlCap; }).catch(()=>null);
+    }
+  }catch(e){ dlCapReady=null; }
+}
+async function exportarBackup(){
+  const data=JSON.stringify(DB,null,1);
+  const nome='campo-pedro-'+new Date().toISOString().slice(0,10)+'.json';
+  let dl=dlCap;
+  if(!dl && dlCapReady){ toast('Preparando a cópia…'); dl=await dlCapReady; }
+  if(dl){
+    try{ await dl.save({filename:nome, data}); toast('Cópia salva: '+nome); }
+    catch(err){
+      const c=err && err.code;
+      if(c==='declined') toast('A cópia não foi salva');
+      else if(c==='rate_limited') toast('Espere um instante e tente de novo');
+      else textoBackup();
+    }
+    return;
+  }
+  /* dentro do Claude sem permissão para baixar: a cópia em texto sempre funciona */
+  if(emMoldura){ textoBackup(); return; }
+  try{
     const url=URL.createObjectURL(new Blob([data],{type:'application/json'}));
     const a=document.createElement('a'); a.href=url; a.download=nome;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),2000);
     toast('Cópia salva em Downloads: '+nome);
-  }catch(e){ toast('Não foi possível salvar a cópia neste aparelho'); }
+  }catch(e){ textoBackup(); }
 }
 async function aplicarBackup(texto){
   let novo=null;
@@ -570,7 +658,7 @@ async function aplicarBackup(texto){
   pushUndo();
   DB=novo; DB.settings=Object.assign(defaults().settings, DB.settings||{});
   if(!DB.history) DB.history=[];
-  ensureTeams(); save(); renderAll(); fitView(); closeMenu();
+  normalizeDB(); ensureTeams(); save(); renderAll(); fitView(); closeMenu();
   toast('Cópia restaurada');
   return true;
 }
@@ -584,14 +672,14 @@ function importarBackup(file){
 function textoBackup(){
   modal('Texto da cópia de segurança',
     `<p style="margin:2px 0 8px;line-height:1.5">Toque no texto, escolha <b>Selecionar tudo</b> e depois <b>Copiar</b>. Guarde numa anotação ou mande para você mesmo.</p>
-     <textarea id="bkTxt" readonly style="width:100%;height:150px;font-family:ui-monospace,monospace;font-size:11px">${esc(JSON.stringify(DB))}</textarea>`,
+     <textarea id="bkTxt" readonly style="width:100%;height:150px;font-family:ui-monospace,monospace;font-size:16px">${esc(JSON.stringify(DB))}</textarea>`,
     [{label:'Fechar'}]);
   setTimeout(()=>{ const t=$('#bkTxt'); if(t){ t.focus(); t.select(); } },150);
 }
 function colarBackup(){
   modal('Colar o texto da cópia',
     `<p style="margin:2px 0 8px;line-height:1.5">Cole aqui o texto que você guardou antes.</p>
-     <textarea id="bkIn" placeholder='{"v":1, ...' style="width:100%;height:150px;font-family:ui-monospace,monospace;font-size:11px"></textarea>`,
+     <textarea id="bkIn" placeholder='{"v":1, ...' style="width:100%;height:150px;font-family:ui-monospace,monospace;font-size:16px"></textarea>`,
     [{label:'Cancelar'},{label:'Trazer de volta',cls:'acc',run:w=>aplicarBackup(w.querySelector('#bkIn').value)}]);
 }
 
@@ -626,8 +714,8 @@ function pushUndo(){
   redoStack.length=0; refreshUndoBtns();
 }
 function applySnap(s){ const o=JSON.parse(s); DB.teams=o.teams; DB.match=o.match; ensureTeams(); renderAll(); save(); }
-function undo(){ if(!undoStack.length) return; redoStack.push(snapshot()); applySnap(undoStack.pop()); refreshUndoBtns(); toast('Desfeito'); }
-function redo(){ if(!redoStack.length) return; undoStack.push(snapshot()); applySnap(redoStack.pop()); refreshUndoBtns(); toast('Refeito'); }
+function undo(){ if(drag || !undoStack.length) return; redoStack.push(snapshot()); applySnap(undoStack.pop()); refreshUndoBtns(); toast('Desfeito'); }
+function redo(){ if(drag || !redoStack.length) return; undoStack.push(snapshot()); applySnap(redoStack.pop()); refreshUndoBtns(); toast('Refeito'); }
 function refreshUndoBtns(){ $('#btnUndo').disabled=!undoStack.length; $('#btnRedo').disabled=!redoStack.length; }
 
 /* relógio ----------------------------------------------------------- */
@@ -676,12 +764,14 @@ const pctT = y => ((y+5)/78)*100;
 const view={z:1,tx:0,ty:0};
 function boardFit(){
   const st=$('#stage').getBoundingClientRect();
-  const pad=10, AR=115/78;
+  const pad=8;
   const availW=Math.max(80,st.width-pad*2), availH=Math.max(80,st.height-pad*2);
-  /* girado 90º, o campo ocupa na tela a altura como largura e vice-versa */
-  const w = DB.settings.rot===90 ? Math.min(availH, availW*AR)
-                                 : Math.min(availW, availH*AR);
-  const h=w/AR;
+  /* o campo estica para aproveitar toda a área do palco (sem encostar nas
+     colunas), em vez de manter a proporção exata de um campo de futebol real.
+     Girado 90º, o campo ocupa na tela a altura como largura e vice-versa. */
+  const rotated = DB.settings.rot===90;
+  const w = rotated ? availH : availW;
+  const h = rotated ? availW : availH;
   const b=$('#board');
   b.style.width=w+'px'; b.style.height=h+'px';
   b.style.marginLeft=(-w/2)+'px'; b.style.marginTop=(-h/2)+'px';
@@ -776,34 +866,19 @@ function renderField(){
   ['A','B'].forEach(side=>{
     const t=teamOf(side), placed=placedOf(side);
     const dim = focus!=='both' && focus!==side;
-    if(focus!=='both' && focus!==side && !DB.settings.showEmpty){}
-    /* vagas vazias */
-    if(DB.settings.showEmpty && !dim){
-      POS.forEach(p=>{
-        if(slotOwner(side,p.id)) return;
-        const c=coordOf(side,p);
-        const el=document.createElement('div');
-        el.className='slot lv'+p.lvl+(side==='B'?' lblDown':''); el.dataset.slot=p.id; el.dataset.side=side;
-        el.style.left=pctL(c.x)+'%'; el.style.top=pctT(c.y)+'%';
-        el.innerHTML=`<div class="ring"></div><div class="lb">${esc(p.curto)}</div>`;
-        frag.appendChild(el);
-      });
-    }
-    /* jogadores em campo */
+    /* jogadores em campo — cada um fica exatamente onde foi colocado, sem
+       vagas pré-definidas nem guias no campo */
     for(const pid in placed){
       const pl=placed[pid], pj=playerById(side,pid);
       if(!pj){ delete placed[pid]; continue; }
       const el=document.createElement('div');
-      el.className='chip lv'+(pl.slot?POSBY[pl.slot].lvl:0)+(dim?' sideDim':'')+(side==='B'?' lblDown':'');
+      el.className='chip lv'+(pl.slot&&POSBY[pl.slot]?POSBY[pl.slot].lvl:0)+(dim?' sideDim':'')+(side==='B'?' lblDown':'');
       el.dataset.pid=pid; el.dataset.side=side;
       el.style.setProperty('--c',t.color);
       el.style.left=pctL(pl.x)+'%'; el.style.top=pctT(pl.y)+'%';
-      /* o nome da posição só cabe embaixo do jogador quando um time está
-         sozinho em cena; com os dois times, viraria uma terceira linha de texto */
-      const lbl = (focus===side) ? `<div class="lb">${esc(pl.slot?posName(pl.slot):'livre')}</div>` : '';
       el.style.zIndex = (focus===side) ? 8 : 6;
       el.innerHTML=`<div class="nm">${esc(shortName(pj.name))}</div>
-        <div class="disc">${esc(pj.number||'')}</div>${lbl}`;
+        <div class="disc">${esc(pj.number||'')}</div>`;
       frag.appendChild(el);
     }
   });
@@ -811,9 +886,7 @@ function renderField(){
   layer.style.setProperty('--fs', DB.settings.fs);
 }
 function shortName(n){
-  if(!DB.settings.shortNames) return n;
-  const parts=String(n).trim().split(/\s+/);
-  return parts.length<=1 ? parts[0] : parts[0];
+  return n;
 }
 function renderCount(){
   /* no celular em pé estes dois botões são a porta de entrada das listas dos
@@ -838,6 +911,8 @@ function renderCount(){
 function placeAt(side,pid,slotId,xy){
   const placed=placedOf(side), pj=playerById(side,pid);
   if(!pj) return;
+  if(slotId && !POSBY[slotId]) slotId=null;
+  if(!slotId && !xy) return;
   const prev=placed[pid];
   let coords=xy;
   if(slotId){
@@ -876,14 +951,33 @@ function removeFromField(side,pid,silent){
    ================================================================== */
 let drag=null;
 const DIST=8;
+/* dedos que estão mexendo o campo (arrastar a visão / pinça de zoom) */
+const stagePts=new Map();
+
+/* Depois de um toque que o próprio aplicativo já tratou (abrir as ações do
+   jogador), o celular ainda manda um "clique" atrasado no mesmo ponto. Esse
+   clique caía em cima da lista de ações recém-aberta e a fechava na hora (ou
+   apertava um item sem querer). Cancelar o fim do toque impede esse clique;
+   além disso a lista de ações ignora cliques nos primeiros instantes depois
+   de abrir (ver sheet). */
+let killTouchEndUntil=0;
+function armClickGuard(e){
+  if(e.pointerType!=='touch') return;
+  killTouchEndUntil=performance.now()+450;
+}
+/* tempo em que uma lista de ações ou janela recém-aberta ignora cliques: pega
+   o clique atrasado e o segundo toque de um toque duplo, mas não atrapalha
+   quem escolhe um item de propósito */
+const GUARDA_ABERTURA=300;
 
 function startPointer(e, pid, side, from, el){
   if(e.pointerType==='mouse' && e.button!==0) return;
   drag={pid,side,from,x0:e.clientX,y0:e.clientY,x:e.clientX,y:e.clientY,
-        on:false, id:e.pointerId, hold:null, el};
-  if(from==='field'){ drag.on=false; }
-  else{
-    drag.hold=setTimeout(()=>{ if(drag && !drag.on) beginDrag(); },240);
+        on:false, id:e.pointerId, mouse:e.pointerType==='mouse', hold:null, el};
+  if(from!=='field'){
+    /* segurar o dedo parado um instante sobre o nome também pega o jogador
+       (curto demais pegava o jogador de quem só ia rolar a lista) */
+    drag.hold=setTimeout(()=>{ if(drag && !drag.on) beginDrag(); },400);
   }
   window.addEventListener('pointermove',movePointer,{passive:false});
   window.addEventListener('pointerup',endPointer);
@@ -891,78 +985,72 @@ function startPointer(e, pid, side, from, el){
 }
 function beginDrag(){
   if(!drag || drag.on) return;
+  const pj=playerById(drag.side,drag.pid), t=teamOf(drag.side);
+  if(!pj){ cleanupDrag(); return; }
   drag.on=true;
   clearTimeout(drag.hold);
-  const pj=playerById(drag.side,drag.pid), t=teamOf(drag.side);
-  if(!pj){ drag=null; return; }
   const g=$('#ghost');
   g.className='chip';
   g.style.setProperty('--c',t.color);
+  g.style.setProperty('--fs',DB.settings.fs);
   g.style.position='fixed'; g.style.left=drag.x+'px'; g.style.top=drag.y+'px';
   g.innerHTML=`<div class="nm">${esc(shortName(pj.name))}</div><div class="disc">${esc(pj.number||'')}</div>`;
   g.classList.remove('hidden');
   document.body.classList.add('dragging');
+  if(!drag.mouse) document.body.classList.add('touchdrag');
   if(drag.el) drag.el.style.opacity='.3';
 }
 function movePointer(e){
   if(!drag || e.pointerId!==drag.id) return;
   drag.x=e.clientX; drag.y=e.clientY;
-  const dx=Math.abs(e.clientX-drag.x0), dy=Math.abs(e.clientY-drag.y0);
   if(!drag.on){
+    const dx=Math.abs(drag.x-drag.x0), dy=Math.abs(drag.y-drag.y0);
     if(drag.from==='field'){ if(dx>6||dy>6) beginDrag(); }
-    else if(dx>DIST && dx>dy){ beginDrag(); }
-    else if(dy>14){ clearTimeout(drag.hold); cleanupDrag(); return; }
+    else if(dx>DIST || dy>DIST){
+      /* na lista: puxar para o lado já pega o jogador; para cima ou para
+         baixo é só rolar a lista (com o mouse, qualquer direção arrasta) */
+      if(drag.mouse || dx>dy) beginDrag();
+      else{ cleanupDrag(); return; }
+    }
   }
   if(!drag.on) return;
   e.preventDefault();
   const g=$('#ghost'); g.style.left=drag.x+'px'; g.style.top=drag.y+'px';
-  highlight(nearestSlot(drag.side,drag.x,drag.y));
-}
-function nearestSlot(side,x,y){
-  if(!DB.settings.magnet) {
-    /* mesmo com ímã desligado, mostra a vaga muito próxima */
-  }
-  const els=$$('#layer .slot[data-side="'+side+'"]');
-  let best=null, bd=Infinity;
-  const lim=clamp(72*view.z,54,170);
-  els.forEach(el=>{
-    const r=el.getBoundingClientRect();
-    const d=Math.hypot(x-(r.left+r.width/2), y-(r.top+r.height/2));
-    if(d<bd){ bd=d; best=el; }
-  });
-  return (best && bd<lim)? best : null;
-}
-function highlight(el){
-  $$('#layer .slot.hot').forEach(e=>{ if(e!==el) e.classList.remove('hot'); });
-  if(el) el.classList.add('hot');
 }
 function endPointer(e){
   if(!drag || e.pointerId!==drag.id) return;
   const d=drag;
   /* dedo parado = toque, mesmo que o arraste já tivesse começado pela demora */
   const parado = Math.hypot(d.x-d.x0, d.y-d.y0) < 10;
-  if(!d.on || parado){ cleanupDrag(); openPlayerSheet(d.side,d.pid,d.from); return; }
+  if(!d.on || parado){
+    cleanupDrag();
+    armClickGuard(e);
+    openPlayerSheet(d.side,d.pid,d.from);
+    return;
+  }
 
-  const x=d.x,y=d.y;
-  const under=document.elementFromPoint(x,y);
-  const overPanel = under && under.closest && under.closest('.panel');
-  const overStage = under && under.closest && under.closest('#stage');
-  const hot=$('#layer .slot.hot');
+  const x=d.x, y=d.y;
+  const narrow=document.body.classList.contains('narrow');
+  const dentro=el=>{ const r=el.getBoundingClientRect();
+    return r.width>0 && r.height>0 && x>=r.left && x<=r.right && y>=r.top && y<=r.bottom; };
+  /* O destino é decidido pela posição do dedo, e não pelo que estiver
+     desenhado naquele ponto: a camada escura da gaveta aberta ficava por cima
+     do campo e fazia o jogador "não pegar" ao ser solto. Na tela em pé as
+     listas são gavetas que se afastam durante o arraste, então ali só o campo
+     é destino. */
+  const overPanel = !narrow && (dentro($('#panelA')) || dentro($('#panelB')));
+  const overStage = !overPanel && dentro($('#stage'));
 
   cleanupDrag();
-  pushUndo();
   if(overPanel){
-    if(d.from==='field'){ removeFromField(d.side,d.pid); toast('Jogador tirado de campo'); }
-  }else if(hot && hot.dataset.side===d.side){
-    placeAt(d.side,d.pid,hot.dataset.slot);
-  }else if(overStage && !DB.settings.magnet){
+    if(d.from==='field'){ pushUndo(); removeFromField(d.side,d.pid); toast('Jogador tirado de campo'); }
+  }else if(overStage){
+    /* posição livre: o jogador fica exatamente onde o dedo soltou, sem guia nem encaixe */
+    pushUndo();
     const p=clientToPitch(x,y);
     placeAt(d.side,d.pid,null,{x:clamp(p.x,-2,107),y:clamp(p.y,-2,70)});
-  }else if(overStage && hot===null && d.from==='field'){
-    undoStack.pop(); /* nada mudou */
-    toast('Solte em cima de uma posição');
-  }else{
-    undoStack.pop();
+    /* na tela em pé a gaveta fecha, para o jogador aparecer onde foi solto */
+    if(d.from==='panel' && narrow) closePanels();
   }
   renderAll();
 }
@@ -971,15 +1059,23 @@ function cleanupDrag(){
   if(drag){ clearTimeout(drag.hold); if(drag.el) drag.el.style.opacity=''; }
   drag=null;
   $('#ghost').classList.add('hidden');
-  document.body.classList.remove('dragging');
-  $$('#layer .slot.hot').forEach(e=>e.classList.remove('hot'));
+  document.body.classList.remove('dragging','touchdrag');
   window.removeEventListener('pointermove',movePointer);
   window.removeEventListener('pointerup',endPointer);
   window.removeEventListener('pointercancel',cancelPointer);
 }
+/* Um segundo dedo no campo enquanto o primeiro ainda está parado sobre um
+   jogador é pinça de zoom, não arraste: o jogador fica onde está e os dois
+   dedos passam a controlar o zoom. */
+function dragToPinch(){
+  if(!drag || drag.on || drag.from!=='field') return false;
+  stagePts.set(drag.id,{x:drag.x,y:drag.y});
+  cleanupDrag();
+  return true;
+}
 
 /* ==================================================================
-   modo "escolher posição" (para quem prefere tocar)
+   modo "escolher lugar" (para quem prefere tocar em vez de arrastar)
    ================================================================== */
 let picking=null;
 function startPicking(side,pid){
@@ -987,14 +1083,11 @@ function startPicking(side,pid){
   picking={side,pid};
   closeMenu(); closePanels();
   $('#pickBar').classList.add('on');
-  $('#pickBar .t').innerHTML=`Toque na posição para <b>${esc(pj.name)}</b><small>Time: ${esc(teamOf(side).name)}</small>`;
-  $$('#layer .slot[data-side="'+side+'"]').forEach(e=>e.classList.add('pickable'));
-  $$('#layer .chip[data-side="'+side+'"]').forEach(e=>e.classList.add('pickable'));
+  $('#pickBar .t').innerHTML=`Toque no campo para posicionar <b>${esc(pj.name)}</b><small>Time: ${esc(teamOf(side).name)}</small>`;
 }
 function stopPicking(){
   picking=null;
   $('#pickBar').classList.remove('on');
-  $$('#layer .pickable').forEach(e=>e.classList.remove('pickable'));
 }
 
 /* ==================================================================
@@ -1007,7 +1100,10 @@ function sheet(title, sub, items){
       <span class="ico">${it.ico||''}</span><span>${esc(it.label)}${it.sub?`<small>${esc(it.sub)}</small>`:''}</span></button>`).join('')}
     </div><button class="si" data-close="1" style="justify-content:center;font-weight:700;border:0"><span>Cancelar</span></button></div>`;
   w.classList.add('on');
+  const aberta=performance.now();
   w.onclick=e=>{
+    /* clique atrasado do toque que abriu a lista, ou 2º toque de um toque duplo */
+    if(performance.now()-aberta<GUARDA_ABERTURA) return;
     if(e.target===w || e.target.closest('[data-close]')){ w.classList.remove('on'); return; }
     const b=e.target.closest('.si[data-i]'); if(!b) return;
     w.classList.remove('on');
@@ -1021,7 +1117,9 @@ function modal(title, bodyHTML, buttons){
   w.innerHTML=`<div class="modal"><h3>${esc(title)}</h3><div class="mc">${bodyHTML}</div>
     <div class="mf">${buttons.map((b,i)=>`<button class="btn ${b.cls||''}" data-i="${i}">${esc(b.label)}</button>`).join('')}</div></div>`;
   w.classList.add('on');
+  const aberto=performance.now();
   w.onclick=e=>{
+    if(performance.now()-aberto<GUARDA_ABERTURA) return;
     const b=e.target.closest('.mf .btn'); if(!b) return;
     const cfg=buttons[+b.dataset.i];
     if(!cfg.keep) w.classList.remove('on');
@@ -1047,11 +1145,11 @@ function openPlayerSheet(side,pid,from){
   const placed=placedOf(side)[pid];
   const items=[];
   if(placed){
-    items.push({ico:'🎯',label:'Mudar de posição',sub:'Toque na nova posição',run:()=>startPicking(side,pid)});
+    items.push({ico:'🎯',label:'Mudar de lugar',sub:'Toque no novo lugar do campo',run:()=>startPicking(side,pid)});
     items.push({ico:'🔄',label:'Substituir por outro jogador',run:()=>openSubSheet(side,pid)});
     items.push({ico:'⬅️',label:'Tirar de campo',run:async()=>{ pushUndo(); removeFromField(side,pid); renderAll(); toast(pj.name+' saiu de campo'); }});
   }else{
-    items.push({ico:'⚽',label:'Colocar em campo',sub:'Toque na posição desejada',run:()=>startPicking(side,pid)});
+    items.push({ico:'⚽',label:'Colocar em campo',sub:'Toque no lugar desejado do campo',run:()=>startPicking(side,pid)});
   }
   items.push({ico:'✏️',label:'Editar nome e número',run:()=>openPlayerForm(side,pj)});
   items.push({ico:pj.reserve?'⬆️':'⬇️',label:pj.reserve?'Tirar da lista de reservas':'Mandar para os reservas',
@@ -1082,7 +1180,7 @@ function openPlayerForm(side,player){
   modal(isNew?'Novo jogador — '+t.name:'Editar jogador',
     `<div class="fld"><label>Nome do jogador</label><input type="text" id="fNome" value="${esc(player?player.name:'')}" placeholder="Ex.: Pedrinho" autocomplete="off"></div>
      <div class="fld"><label>Número da camisa</label><input type="text" id="fNum" inputmode="numeric" value="${esc(player?player.number:'')}" placeholder="Ex.: 10" autocomplete="off">
-     <div class="hint">No campo aparece o número dentro do círculo e o primeiro nome do jogador em cima.</div></div>`,
+     <div class="hint">No campo aparece o número dentro do círculo e o nome do jogador embaixo.</div></div>`,
     isNew? [
       {label:'Fechar'},
       {label:'Salvar e criar outro', keep:true, run:w=>{ if(savePlayer(side,null,w)){ w.querySelector('#fNome').value=''; w.querySelector('#fNum').value=''; w.querySelector('#fNome').focus(); } }},
@@ -1091,7 +1189,12 @@ function openPlayerForm(side,player){
       {label:'Cancelar'},
       {label:'Salvar', cls:'acc', run:w=>savePlayer(side,player,w)}
     ]);
-  setTimeout(()=>{ const i=$('#fNome'); if(i) i.focus(); },120);
+  /* no iPhone o teclado só abre se o campo receber o foco no mesmo toque */
+  focarCampo('#fNome');
+}
+function focarCampo(sel){
+  const i=$(sel); if(i){ try{ i.focus(); }catch(e){} }
+  setTimeout(()=>{ const j=$(sel); if(j && document.activeElement!==j){ try{ j.focus(); }catch(e){} } },120);
 }
 function savePlayer(side,player,w){
   const nome=(w.querySelector('#fNome').value||'').trim();
@@ -1144,12 +1247,10 @@ function openTeamForm(team,sideForNew){
           if(sideForNew){ DB.match[sideForNew].placed={}; DB.match[sideForNew].teamId=nt.id; } }
         save(); renderAll(); toast('Time salvo');
       }}]));
-  setTimeout(()=>{
-    const box=$('#tCor'); if(!box) return;
-    box.onclick=e=>{ const b=e.target.closest('button[data-c]'); if(!b) return;
-      $$('button',box).forEach(x=>x.classList.remove('on')); b.classList.add('on'); };
-    const i=$('#tNome'); if(i) i.focus();
-  },120);
+  const box=$('#tCor');
+  if(box) box.onclick=e=>{ const b=e.target.closest('button[data-c]'); if(!b) return;
+    $$('button',box).forEach(x=>x.classList.remove('on')); b.classList.add('on'); };
+  focarCampo('#tNome');
 }
 async function deleteTeam(team){
   if(DB.teams.length<=2){ toast('É preciso ter pelo menos dois times'); return; }
@@ -1169,7 +1270,7 @@ const MENU_ROOT=[
   {ico:'👥',t:'Times salvos',s:'Criar, editar e apagar times e jogadores',go:'times'},
   {ico:'🏁',t:'Encerrar e guardar este jogo',s:'Guarda no histórico e começa um jogo novo',go:'encerrar'},
   {ico:'💾',t:'Cópia de segurança',s:'Guardar tudo num arquivo, ou trazer de volta',go:'backup'},
-  {ico:'⚙️',t:'Ajustes',s:'Tamanho das letras, ímã das posições e mais',go:'cfg'},
+  {ico:'⚙️',t:'Ajustes',s:'Tamanho das letras e mais',go:'cfg'},
   {ico:'❓',t:'Como usar o aplicativo',s:'Passo a passo rápido',go:'ajuda'},
 ];
 let menuPane='root';
@@ -1181,7 +1282,8 @@ function renderMenu(pane){
   back.style.display = pane==='root'?'none':'inline-flex';
   if(pane==='root'){
     ttl.textContent='Menu';
-    body.innerHTML=MENU_ROOT.map(m=>`<button class="mItem" data-go="${m.go}">
+    const itens=appInstalado()?MENU_ROOT:[{ico:'📲',t:'Instalar na tela inicial',s:'Ícone no celular e funciona sem internet',go:'instalar'}].concat(MENU_ROOT);
+    body.innerHTML=itens.map(m=>`<button class="mItem" data-go="${m.go}">
       <span class="ico">${m.ico}</span><span class="tx"><b>${esc(m.t)}</b><small>${esc(m.s)}</small></span><span class="go">›</span></button>`).join('')
       +`<div class="mNote">Novas funções podem ser acrescentadas aqui no futuro.</div>`;
   }
@@ -1215,12 +1317,6 @@ function renderMenu(pane){
       <div class="segs" id="segFs" style="margin:8px 0 14px">
         ${[['0.85','Pequeno'],['1','Médio'],['1.25','Grande'],['1.5','Bem grande']]
           .map(([v,l])=>`<button data-v="${v}" class="${Math.abs(s.fs-parseFloat(v))<.01?'on':''}">${l}</button>`).join('')}</div>
-      <div class="fieldRow"><div class="tx"><b>Só o primeiro nome no campo</b><small>Deixa o campo mais limpo. O nome inteiro continua na lista do lado.</small></div>
-        <button class="sw ${s.shortNames?'on':''}" data-sw="shortNames"></button></div>
-      <div class="fieldRow"><div class="tx"><b>Mostrar as posições vazias</b><small>As marcas pontilhadas esperando jogador</small></div>
-        <button class="sw ${s.showEmpty?'on':''}" data-sw="showEmpty"></button></div>
-      <div class="fieldRow"><div class="tx"><b>Ímã das posições</b><small>Ligado, o jogador pula sozinho para a posição mais perto. Desligado, ele fica exatamente onde você soltar.</small></div>
-        <button class="sw ${s.magnet?'on':''}" data-sw="magnet"></button></div>
       <div class="mNote" style="margin-top:18px">${storageOK?'Os dados ficam guardados neste aparelho, neste navegador.':'⚠️ Este aparelho não está guardando os dados. Evite fechar o aplicativo.'}</div>
       <button class="btn wide dang" style="margin-top:6px" data-wipe="1"><span class="ico">🗑️</span>Apagar tudo e recomeçar</button>`;
   }
@@ -1264,14 +1360,15 @@ function histCard(h){
 }
 function helpHTML(){
   const steps=[
-    ['Escreva os jogadores','Na lista do lado esquerdo (seu time) e do lado direito (o adversário), toque em "Adicionar jogador" e escreva o nome e o número da camisa.'],
-    ['Coloque em campo','Toque no nome do jogador e escolha "Colocar em campo". Depois toque na posição que ele vai ocupar. Se preferir, você também pode arrastar o nome com o dedo até a posição.'],
-    ['Mude quando quiser','Toque em um jogador que já está no campo para mudar de posição, substituir por um reserva ou tirar de campo.'],
+    ['Escreva os jogadores','Na lista do lado esquerdo (seu time) e do lado direito (o adversário), toque em "Adicionar jogador" e escreva o nome e o número da camisa. No celular em pé, as listas abrem pelos dois botões na parte de baixo do campo.'],
+    ['Coloque em campo','Toque no nome do jogador e escolha "Colocar em campo". Depois toque no lugar do campo onde ele vai ficar. Se preferir, segure o nome do jogador e arraste com o dedo até o lugar desejado — ele fica exatamente onde você soltar.'],
+    ['Mude quando quiser','Toque em um jogador que já está no campo para mudar de lugar, substituir por um reserva ou tirar de campo.'],
     ['Aproxime o campo','Use dois dedos para aproximar e afastar, ou os botões ＋ e −. O botão ⤢ volta o campo ao tamanho normal e o ⟳ gira o campo.'],
     ['Guarde o jogo','No fim da partida, abra o Menu e toque em "Encerrar e guardar este jogo". Tudo fica no histórico: escalação, substituições e o minuto de cada mudança.'],
   ];
   return steps.map((s,i)=>`<div class="helpStep"><div class="n">${i+1}</div><div class="tx"><b>${esc(s[0])}</b><span>${esc(s[1])}</span></div></div>`).join('')
-    +`<div class="mNote">Dica: o botão <b>Vendo: os dois</b>, em cima do campo, deixa mostrar só um time de cada vez — fica bem mais fácil de enxergar.</div>`;
+    +`<div class="mNote">Dica: o botão <b>Vendo: os dois</b>, em cima do campo, deixa mostrar só um time de cada vez — fica bem mais fácil de enxergar.</div>`
+    +(appInstalado()?'':`<div class="mNote">📲 Para ter o aplicativo com ícone na tela inicial, abra o Menu e toque em <b>Instalar na tela inicial</b>.</div>`);
 }
 
 /* ==================================================================
@@ -1364,19 +1461,9 @@ function wire(){
     const b=e.target.closest('[data-open]'); if(!b) return;
     if(!document.body.classList.contains('narrow')) return; /* já estão visíveis */
     closePanels();
-    $('#panel'+b.dataset.open).classList.add('open');
+    $('#panel'+b.dataset.open).classList.add('open'); $('#scrim').classList.add('on');
   };
   $$('.closeP').forEach(b=>b.onclick=closePanels);
-  /* #scrim é 'position:fixed' fora do #app, então fica sempre acima de tudo
-     que tem dentro do #app -- inclusive do próprio painel do time, que por
-     isso nunca poderia usar o scrim pra se fechar (todo toque dentro do
-     painel acertaria o scrim antes de qualquer botão). Fechar tocando no
-     campo (fora do painel) é feito aqui, sem depender do scrim. */
-  $('#stage').addEventListener('click',e=>{
-    if(!document.body.classList.contains('narrow')) return;
-    if(e.target.closest('#count')) return; /* esse toque já abre o painel, ver acima */
-    if($('#panelA').classList.contains('open')||$('#panelB').classList.contains('open')) closePanels();
-  });
   $$('.pTeam').forEach(b=>b.onclick=()=>openTeamSheet(b.dataset.teamSide));
   $('#pickCancel').onclick=stopPicking;
 
@@ -1385,6 +1472,7 @@ function wire(){
     const p=$('#panel'+side);
     p.addEventListener('pointerdown',e=>{
       const row=e.target.closest('.pl'); if(!row) return;
+      if(drag) return; /* já tem um jogador sendo arrastado */
       startPointer(e,row.dataset.pid,side,'panel',row);
     });
     p.addEventListener('click',e=>{
@@ -1397,22 +1485,22 @@ function wire(){
   const layer=$('#layer');
   layer.addEventListener('pointerdown',e=>{
     const chip=e.target.closest('.chip');
-    if(chip){
-      if(picking && chip.dataset.side===picking.side){ return; }
-      e.stopPropagation();
-      startPointer(e,chip.dataset.pid,chip.dataset.side,'field',chip);
-    }
+    if(!chip) return;
+    if(e.pointerType==='mouse' && e.button!==0) return;
+    /* escolhendo lugar: tocar em cima de qualquer jogador só marca o lugar */
+    if(picking) return;
+    /* já tem outro dedo no campo: é pinça de zoom, quem trata é o campo */
+    if(drag || stagePts.size){ dragToPinch(); return; }
+    e.stopPropagation();
+    startPointer(e,chip.dataset.pid,chip.dataset.side,'field',chip);
   });
-  layer.addEventListener('click',e=>{
+  $('#stage').addEventListener('click',e=>{
     if(!picking) return;
-    const slot=e.target.closest('.slot'), chip=e.target.closest('.chip');
-    if(slot && slot.dataset.side===picking.side){
-      pushUndo(); placeAt(picking.side,picking.pid,slot.dataset.slot);
-      stopPicking(); renderAll();
-    }else if(chip && chip.dataset.side===picking.side && chip.dataset.pid!==picking.pid){
-      const alvo=placedOf(picking.side)[chip.dataset.pid];
-      if(alvo && alvo.slot){ pushUndo(); placeAt(picking.side,picking.pid,alvo.slot); stopPicking(); renderAll(); }
-    }
+    if(e.target.closest('.fab')||e.target.closest('#pickBar')||e.target.closest('#count')) return;
+    const p=clientToPitch(e.clientX,e.clientY);
+    pushUndo();
+    placeAt(picking.side,picking.pid,null,{x:clamp(p.x,-2,107),y:clamp(p.y,-2,70)});
+    stopPicking(); renderAll();
   });
 
   setupStageGestures();
@@ -1420,7 +1508,7 @@ function wire(){
   /* menu: cliques */
   $('.mBody',$('#menu')).addEventListener('click',async e=>{
     const go=e.target.closest('[data-go]');
-    if(go){ if(go.dataset.go==='encerrar') encerrarJogo(); else renderMenu(go.dataset.go); return; }
+    if(go){ if(go.dataset.go==='encerrar') encerrarJogo(); else if(go.dataset.go==='instalar'){ closeMenu(); instalarApp(); } else renderMenu(go.dataset.go); return; }
     const tm=e.target.closest('[data-team]');
     if(tm){ const t=DB.teams.find(x=>x.id===tm.dataset.team); if(t) openTeamManage(t); return; }
     if(e.target.closest('[data-newteam]')){ openTeamForm(null,null); return; }
@@ -1445,8 +1533,24 @@ function wire(){
     }
   });
 
-  window.addEventListener('resize',()=>{ setNarrow(); renderCount(); fitView(); });
-  window.addEventListener('orientationchange',()=>setTimeout(()=>{ setNarrow(); renderCount(); fitView(); },250));
+  /* Girar o celular (muda a largura) reorganiza a tela e reajusta o campo.
+     Quando só a altura muda — o teclado abrindo para digitar um nome, ou a
+     barra do navegador aparecendo — o campo só se adapta ao espaço, sem
+     perder o zoom e sem girar sozinho. */
+  let lastW=window.innerWidth;
+  const onResize=force=>{
+    const w=window.innerWidth;
+    if(force===true || w!==lastW){
+      lastW=w;
+      if(drag) cleanupDrag(); /* girou o celular no meio de um arraste: cancela */
+      const era=document.body.classList.contains('narrow');
+      setNarrow();
+      if(era!==document.body.classList.contains('narrow')) closePanels();
+      renderAll(); fitView();
+    }else{ boardFit(); applyView(); }
+  };
+  window.addEventListener('resize',()=>onResize(false));
+  window.addEventListener('orientationchange',()=>setTimeout(()=>onResize(true),250));
 }
 
 function openTeamManage(t){
@@ -1463,9 +1567,9 @@ function registrarEscalacaoInicial(){
   DB.match.snapped=true;
   ['A','B'].forEach(side=>{
     const t=teamOf(side), placed=placedOf(side);
-    const lst=POS.filter(p=>slotOwner(side,p.id)).map(p=>{
-      const pj=playerById(side,slotOwner(side,p.id));
-      return p.curto+': '+(pj?((pj.number?pj.number+' ':'')+pj.name):'?');
+    const lst=Object.keys(placed).map(pid=>{
+      const pj=playerById(side,pid);
+      return pj?((pj.number?pj.number+' ':'')+pj.name):'?';
     });
     if(lst.length) logIt('Escalação do '+t.name+' — '+lst.join('; ')+'.');
   });
@@ -1474,26 +1578,34 @@ function registrarEscalacaoInicial(){
 /* gestos no campo: pan com um dedo, zoom com dois -------------------- */
 function setupStageGestures(){
   const st=$('#stage');
-  const pts=new Map();
+  const pts=stagePts;
   let base=null;
-  st.addEventListener('pointerdown',e=>{
-    if(e.target.closest('.chip')||e.target.closest('.fab')||e.target.closest('#pickBar')||e.target.closest('#count')) return;
-    if(picking) return; /* no modo escolher posição, o toque é para escalar */
-    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
-    if(pts.size===1) base={tx:view.tx,ty:view.ty,x:e.clientX,y:e.clientY};
-    if(pts.size===2){
-      const [a,b]=[...pts.values()];
+  const rebase=()=>{
+    const v=[...pts.values()];
+    if(v.length===1) base={tx:view.tx,ty:view.ty,x:v[0].x,y:v[0].y};
+    else if(v.length>=2){
+      const [a,b]=v;
       base={z:view.z,tx:view.tx,ty:view.ty,d:Math.hypot(a.x-b.x,a.y-b.y),
             mx:(a.x+b.x)/2,my:(a.y+b.y)/2};
-    }
+    }else base=null;
+  };
+  st.addEventListener('pointerdown',e=>{
+    if(e.pointerType==='mouse' && e.button!==0) return; /* botão direito/meio do mouse não mexe no campo */
+    if(e.target.closest('.fab')||e.target.closest('#pickBar')||e.target.closest('#count')) return;
+    if(picking) return; /* no modo escolher posição, o toque é para escalar */
+    /* com um jogador sendo arrastado, outros dedos não mexem no campo; se o
+       primeiro dedo ainda estava parado sobre um jogador, vira pinça */
+    if(drag && !dragToPinch()) return;
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    rebase();
   });
   st.addEventListener('pointermove',e=>{
     if(!pts.has(e.pointerId)) return;
     pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
-    if(drag) return;
-    if(pts.size===1 && base){
+    if(drag || !base) return;
+    if(pts.size===1){
       view.tx=base.tx+(e.clientX-base.x); view.ty=base.ty+(e.clientY-base.y); applyView();
-    }else if(pts.size===2 && base && base.d){
+    }else if(base.d){
       const [a,b]=[...pts.values()];
       const d=Math.hypot(a.x-b.x,a.y-b.y);
       const z1=clamp(base.z*(d/base.d),.75,6);
@@ -1503,10 +1615,10 @@ function setupStageGestures(){
       view.z=z1; applyView();
     }
   });
-  const up=e=>{ pts.delete(e.pointerId); base=null;
-    if(pts.size===1){ const [a]=[...pts.values()]; base={tx:view.tx,ty:view.ty,x:a.x,y:a.y}; } };
-  st.addEventListener('pointerup',up);
-  st.addEventListener('pointercancel',up);
+  /* o dedo pode sair do campo antes de levantar: escuta na janela toda */
+  const up=e=>{ if(pts.delete(e.pointerId)) rebase(); };
+  window.addEventListener('pointerup',up,true);
+  window.addEventListener('pointercancel',up,true);
   st.addEventListener('wheel',e=>{ e.preventDefault(); zoomAt(view.z*(e.deltaY<0?1.12:1/1.12), e.clientX, e.clientY); },{passive:false});
   st.addEventListener('dblclick',e=>zoomAt(view.z<2?view.z*1.8:1, e.clientX, e.clientY));
 }
@@ -1536,16 +1648,118 @@ function boot(){
     setTimeout(()=>{ openMenu(); renderMenu('ajuda'); },400);
   }
   document.addEventListener('gesturestart',e=>e.preventDefault());
-  document.addEventListener('touchmove',e=>{ if(e.touches.length>1) e.preventDefault(); },{passive:false});
+  /* Dois dedos nunca aproximam a página. E, com um jogador sendo arrastado, o
+     dedo não pode rolar a lista nem a página — senão o navegador cancelava o
+     arraste no meio do caminho e o jogador voltava para a lista. */
+  document.addEventListener('touchmove',e=>{
+    if((e.touches.length>1 || (drag && drag.on)) && e.cancelable) e.preventDefault();
+  },{passive:false});
+  /* guarda do clique fantasma (ver armClickGuard) */
+  document.addEventListener('touchend',e=>{
+    if(performance.now()<killTouchEndUntil){
+      killTouchEndUntil=0;
+      if(e.cancelable) e.preventDefault();
+    }
+  },{passive:false});
+  /* Um toque novo começando do zero (primeiro dedo, ou o mouse) nunca faz
+     parte de um arraste ou pinça anterior. Se o fim do toque anterior se
+     perdeu (raro, no iPhone), o que sobrou dele é descartado aqui — senão os
+     jogadores ficariam "presos" até recarregar a página. */
+  window.addEventListener('pointerdown',e=>{
+    if(!e.isPrimary) return;
+    if(drag) cleanupDrag();
+    stagePts.clear();
+  },true);
+  /* segurar o dedo no jogador não abre o menu do sistema (Android) */
+  window.addEventListener('contextmenu',e=>{
+    if(drag || (e.target && e.target.closest && e.target.closest('.pl,.chip'))) e.preventDefault();
+  });
+  prepararDownloads();
 }
+/* ==================================================================
+   instalar na tela inicial / funcionar sem internet
+   ================================================================== */
+/* O navegador nunca deixa um site criar o ícone sozinho: quem confirma é a
+   pessoa. No Android (Chrome) o próprio app mostra o botão "Instalar", que
+   abre a confirmação do sistema. No iPhone não existe esse botão: o app
+   ensina o caminho pelo botão Compartilhar do Safari. */
+let pedidoInstalar=null;
+const ADIADO_KEY='campoPedro.instalarAdiado';
+function appInstalado(){
+  try{ if(window.matchMedia && (matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: minimal-ui)').matches)) return true; }catch(e){}
+  return window.navigator.standalone===true;
+}
+const ehIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+const ehAndroid=()=>/android/i.test(navigator.userAgent);
+function adiadoRecente(){
+  try{ const t=parseInt(localStorage.getItem(ADIADO_KEY)||'0',10); return t && (Date.now()-t) < 3*24*3600*1000; }catch(e){ return false; }
+}
+function mostrarCartaoInstalar(modo){
+  if(appInstalado() || adiadoRecente()) return;
+  const c=$('#instalar');
+  $('#instTx').textContent = modo==='ios'
+    ? 'No Safari, toque em Compartilhar e depois em "Adicionar à Tela de Início".'
+    : modo==='ajuda'
+      ? 'Fica com ícone na tela inicial e funciona sem internet. Toque para ver como.'
+      : 'Fica com ícone na tela inicial e funciona sem internet.';
+  $('#instSim').textContent = modo==='ios' ? 'Ver como' : (modo==='ajuda' ? 'Como instalar' : 'Instalar');
+  c.classList.remove('hidden');
+}
+function esconderCartaoInstalar(){ $('#instalar').classList.add('hidden'); }
+async function instalarApp(){
+  if(pedidoInstalar){
+    const p=pedidoInstalar; pedidoInstalar=null;
+    esconderCartaoInstalar();
+    try{
+      await p.prompt();
+      const r=await p.userChoice;
+      if(r && r.outcome==='accepted') toast('Pronto! O ícone vai aparecer na tela inicial.');
+    }catch(e){ comoInstalar(); }
+    return;
+  }
+  comoInstalar();
+}
+function comoInstalar(){
+  let passos;
+  if(ehIOS()) passos=[
+    'Abra este endereço no <b>Safari</b>.',
+    'Toque no botão <b>Compartilhar</b> (o quadrado com a seta para cima).',
+    'Role a lista e toque em <b>Adicionar à Tela de Início</b>, depois em <b>Adicionar</b>.'];
+  else if(ehAndroid()) passos=[
+    'Abra este endereço no <b>Chrome</b>. Se ele abriu dentro do WhatsApp ou de outro aplicativo, toque em <b>⋮</b> e escolha <b>Abrir no Chrome</b>.',
+    'No Chrome, toque em <b>⋮</b> (canto de cima, à direita).',
+    'Toque em <b>Instalar app</b> (ou <b>Adicionar à tela inicial</b>) e confirme.'];
+  else passos=[
+    'No Chrome ou no Edge, clique no ícone de instalar que aparece no fim da barra de endereço.',
+    'Ou abra este endereço no celular e siga os passos que aparecem lá.'];
+  modal('Instalar na tela inicial',
+    `<ol style="margin:2px 0 6px;padding-left:20px;line-height:1.6;font-size:14.5px">${passos.map(s=>'<li style="margin-bottom:7px">'+s+'</li>').join('')}</ol>
+     <p style="margin:0;color:var(--muted);font-size:13px;line-height:1.5">Depois é só abrir pelo ícone. Os times e jogadores ficam guardados no próprio celular.</p>`,
+    [{label:'Entendi'}]);
+}
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();          /* o app mostra o próprio botão, em português */
+  pedidoInstalar=e;
+  mostrarCartaoInstalar('botao');
+});
+window.addEventListener('appinstalled',()=>{
+  pedidoInstalar=null; esconderCartaoInstalar();
+  if(menuPane==='root' && $('#menu').classList.contains('on')) renderMenu('root');
+});
+$('#instSim').onclick=()=>instalarApp();
+$('#instNao').onclick=()=>{ try{ localStorage.setItem(ADIADO_KEY,String(Date.now())); }catch(e){} esconderCartaoInstalar(); };
+if(!appInstalado()){
+  if(ehIOS()) setTimeout(()=>mostrarCartaoInstalar('ios'),1200);
+  /* Android sem o botão do Chrome (por exemplo aberto dentro do WhatsApp):
+     mostra o passo a passo */
+  else if(ehAndroid()) setTimeout(()=>{ if(!pedidoInstalar) mostrarCartaoInstalar('ajuda'); },4000);
+}
+/* guarda o aplicativo no aparelho para abrir mesmo sem internet */
+if('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1')){
+  navigator.serviceWorker.register('service-worker.js',{updateViaCache:'none'}).catch(()=>{});
+}
+
 boot();
 </script>
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('service-worker.js');
-  });
-}
-</script>
-</body>
-</html>
+
+</body></html>
